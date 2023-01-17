@@ -1,0 +1,1 @@
+! for dir1 in $(seq 1 10); do for dir2 in $(seq 1 10); do for file in $(seq 1 50); do mkdir -p "$dir1/$dir2/"; touch "$dir1/$dir2/$file.txt"; done; done; done

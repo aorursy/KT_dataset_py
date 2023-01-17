@@ -1,0 +1,79 @@
+# modules we'll use
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import datetime
+
+# read in our data
+earthquakes = pd.read_csv("../input/earthquake-database/database.csv")
+landslides = pd.read_csv("../input/landslide-events/catalog.csv")
+volcanos = pd.read_csv("../input/volcanic-eruptions/database.csv")
+
+# set seed for reproducibility
+np.random.seed(0)
+# print the first few rows of the date column
+print(landslides['date'].head())
+# check the data type of our date column
+landslides['date'].dtype
+# Your turn! Check the data type of the Date column in the earthquakes dataframe
+# (note the capital 'D' in date!)
+earthquakes['Date'].dtype
+# create a new column, date_parsed, with the parsed dates
+landslides['date_parsed'] = pd.to_datetime(landslides['date'], format = "%m/%d/%y")
+# print the first few rows
+landslides['date_parsed'].head()
+# Your turn! Create a new column, date_parsed, in the earthquakes
+# dataset that has correctly parsed dates in it. (Don't forget to 
+# double-check that the dtype is correct!)
+
+#This datetime conversion throws an unrecognized value type error
+#earthquakes['date_parsed'] = pd.to_datetime(earthquakes['Date'], format = "%m/%d/%y")
+#So, use infer_datetime_format=True instead
+earthquakes['date_parsed'] = pd.to_datetime(earthquakes['Date'], infer_datetime_format=True)
+earthquakes['date_parsed'].dtype
+# try to get the day of the month from the date column
+day_of_month_landslides = landslides['date'].dt.day
+# get the day of the month from the date_parsed column
+day_of_month_landslides = landslides['date_parsed'].dt.day
+# Your turn! get the day of the month from the date_parsed column
+day_of_month_earthquakes = earthquakes['date_parsed'].dt.day
+day_of_month_earthquakes.head()
+# remove na's
+day_of_month_landslides = day_of_month_landslides.dropna()
+
+# plot the day of the month
+sns.distplot(day_of_month_landslides, kde=False, bins=31)
+# Your turn! Plot the days of the month from your
+# earthquake dataset and make sure they make sense.
+# remove na's
+day_of_month_earthquakes = day_of_month_earthquakes.dropna()
+
+# plot the day of the month
+sns.distplot(day_of_month_earthquakes, kde=False, bins=31)
+volcanos['Last Known Eruption'].sample(5)
+#Let's get the number of Unknown eruption dates
+isunknown = volcanos['Last Known Eruption'] == 'Unknown'
+isunknown.sum()
+#transforming the 'Unknown' value with NaN'
+volcanos = volcanos.replace('Unknown', np.nan)
+#check the null values in all columns
+#(The Last Known Eruption coutn should be the same the number of 'Unknown' above, i.e. 637)
+volcanos.isnull().sum()
+#Drop any rows containing null values
+volcanos_no_null = volcanos.dropna()
+#Check to see if the volcanos contains no null values
+volcanos_no_null.isnull().sum()
+#Check the shape after transformation
+volcanos_no_null.shape
+#Compare against shape before transformation
+#(We lost below half of the rows)
+volcanos.shape
+#Apply a lambda on 'Last Known Eruption' performing a split on the string (to lose BCE or CE), 
+# assign the correct sign (+/-) and cast to an int
+#Note: this operation produces an warning to use .loc instead, is ignored for now..
+volcanos_no_null['Year'] = volcanos_no_null['Last Known Eruption'].apply(lambda x: int('-'+(x.split(' ')[0])) if x.endswith('BCE') else int((x.split(' CE')[0])))
+
+#print some sample entries
+volcanos_no_null.head(10)
+#plot the distribution
+sns.distplot(volcanos_no_null['Year'])

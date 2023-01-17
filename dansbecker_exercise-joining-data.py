@@ -1,0 +1,186 @@
+# Set up feedback system
+
+from learntools.core import binder
+
+binder.bind(globals())
+
+from learntools.sql.ex6 import *
+
+print("Setup Complete")
+from google.cloud import bigquery
+
+
+
+# Create a "Client" object
+
+client = bigquery.Client()
+
+
+
+# Construct a reference to the "stackoverflow" dataset
+
+dataset_ref = client.dataset("stackoverflow", project="bigquery-public-data")
+
+
+
+# API request - fetch the dataset
+
+dataset = client.get_dataset(dataset_ref)
+# Get a list of available tables 
+
+list_of_tables = ____ # Your code here
+
+
+
+# Print your answer
+
+print(list_of_tables)
+
+
+
+# Check your answer
+
+q_1.check()
+#q_1.solution()
+# Construct a reference to the "posts_answers" table
+
+answers_table_ref = dataset_ref.table("posts_answers")
+
+
+
+# API request - fetch the table
+
+answers_table = client.get_table(answers_table_ref)
+
+
+
+# Preview the first five lines of the "posts_answers" table
+
+client.list_rows(answers_table, max_results=5).to_dataframe()
+# Construct a reference to the "posts_questions" table
+
+questions_table_ref = dataset_ref.table("posts_questions")
+
+
+
+# API request - fetch the table
+
+questions_table = client.get_table(questions_table_ref)
+
+
+
+# Preview the first five lines of the "posts_questions" table
+
+client.list_rows(questions_table, max_results=5).to_dataframe()
+# Check your answer (Run this code cell to receive credit!)
+
+q_2.solution()
+# Your code here
+
+questions_query = """
+
+                  SELECT ____
+
+                  FROM `bigquery-public-data.stackoverflow.posts_questions`
+
+                  WHERE ____
+
+                  """
+
+
+
+# Set up the query (cancel the query if it would use too much of 
+
+# your quota, with the limit set to 1 GB)
+
+safe_config = bigquery.QueryJobConfig(maximum_bytes_billed=10**10)
+
+questions_query_job = ____ # Your code goes here
+
+
+
+# API request - run the query, and return a pandas DataFrame
+
+questions_results = ____ # Your code goes here
+
+
+
+# Preview results
+
+print(questions_results.head())
+
+
+
+# Check your answer
+
+q_3.check()
+#q_3.hint()
+
+#q_3.solution()
+# Your code here
+
+answers_query = """____"""
+
+
+
+# Set up the query
+
+safe_config = bigquery.QueryJobConfig(maximum_bytes_billed=10**10)
+
+answers_query_job = ____ # Your code goes here
+
+
+
+# API request - run the query, and return a pandas DataFrame
+
+answers_results = ____ # Your code goes here
+
+
+
+# Preview results
+
+print(answers_results.head())
+
+
+
+# Check your answer
+
+q_4.check()
+#q_4.hint()
+
+#q_4.solution()
+# Your code here
+
+bigquery_experts_query = """____"""
+
+
+
+# Set up the query
+
+safe_config = bigquery.QueryJobConfig(maximum_bytes_billed=10**10)
+
+bigquery_experts_query_job = ____ # Your code goes here
+
+
+
+# API request - run the query, and return a pandas DataFrame
+
+bigquery_experts_results = ____ # Your code goes here
+
+
+
+# Preview results
+
+print(bigquery_experts_results.head())
+
+
+
+# Check your answer
+
+q_5.check()
+#q_5.hint()
+
+#q_5.solution()
+# Check your answer (Run this code cell to receive credit!)
+
+q_6.solution()

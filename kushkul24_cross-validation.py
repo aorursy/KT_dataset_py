@@ -1,0 +1,180 @@
+# Set up code checking
+
+from learntools.core import binder
+
+binder.bind(globals())
+
+from learntools.ml_intermediate.ex5 import *
+
+print("Setup Complete")
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+
+
+
+# Read the data
+
+train_data = pd.read_csv('../input/train.csv', index_col='Id')
+
+test_data = pd.read_csv('../input/test.csv', index_col='Id')
+
+
+
+# Remove rows with missing target, separate target from predictors
+
+train_data.dropna(axis=0, subset=['SalePrice'], inplace=True)
+
+y = train_data.SalePrice              
+
+train_data.drop(['SalePrice'], axis=1, inplace=True)
+
+
+
+# Select numeric columns only
+
+numeric_cols = [cname for cname in train_data.columns if train_data[cname].dtype in ['int64', 'float64']]
+
+X = train_data[numeric_cols].copy()
+
+X_test = test_data[numeric_cols].copy()
+X.head()
+from sklearn.ensemble import RandomForestRegressor
+
+from sklearn.pipeline import Pipeline
+
+from sklearn.impute import SimpleImputer
+
+
+
+my_pipeline = Pipeline(steps=[
+
+    ('preprocessor', SimpleImputer()),
+
+    ('model', RandomForestRegressor(n_estimators=50, random_state=0))
+
+])
+from sklearn.model_selection import cross_val_score
+
+
+
+# Multiply by -1 since sklearn calculates *negative* MAE
+
+scores = -1 * cross_val_score(my_pipeline, X, y,
+
+                              cv=5,
+
+                              scoring='neg_mean_absolute_error')
+
+
+
+print("Average MAE score:", scores.mean())
+def get_score(n_estimators):
+
+    """Return the average MAE over 3 CV folds of random forest model.
+
+    
+
+    Keyword argument:
+
+    n_estimators -- the number of trees in the forest
+
+    """
+
+    # Replace this body with your own code
+
+    my_pipeline2 = Pipeline(steps = [
+
+        ('imputer', SimpleImputer()),
+
+        ('model', RandomForestRegressor(n_estimators = n_estimators, random_state = 0))
+
+    ])
+
+    
+
+    scores = -1 * cross_val_score(my_pipeline2, X, y, cv=3, scoring='neg_mean_absolute_error')
+
+    
+
+    average_score = scores.mean()
+
+    print (average_score)
+
+    return average_score
+
+
+
+# Check your answer
+
+step_1.check()
+# Lines below will give you a hint or solution code
+
+#step_1.hint()
+
+#step_1.solution()
+results = {}
+
+
+
+n_estimator_list = [50, 100, 150, 200, 250, 300, 350, 400]
+
+for i in n_estimator_list:
+
+    results[i] = get_score(i)
+
+
+
+# Check your answer
+
+step_2.check()
+# Lines below will give you a hint or solution code
+
+#step_2.hint()
+
+#step_2.solution()
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+
+
+plt.plot(results.keys(), results.values())
+
+plt.show()
+n_estimators_best = 200
+
+
+
+# Check your answer
+
+step_3.check()
+#Submitting the solution using n_estimators = 200
+
+#Training the model on train data
+
+my_imputer = SimpleImputer()
+
+X_train_transformed = my_imputer.fit_transform(X)
+
+X_test_transformed = my_imputer.transform(X_test)
+
+my_model = RandomForestRegressor(n_estimators = 200, random_state = 0)
+
+
+
+my_model.fit(X_train_transformed, y)
+
+predictions = my_model.predict(X_test_transformed)
+#Creating the output
+
+output = pd.DataFrame({'Id': X_test.index,
+
+                       'SalePrice': predictions})
+
+output.to_csv('submission.csv', index=False)
+# Lines below will give you a hint or solution code
+
+#step_3.hint()
+
+#step_3.solution()

@@ -1,0 +1,75 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+Ol_data = pd.read_csv("../input/athlete_events.csv")
+reg_data = pd.read_csv("../input/noc_regions.csv")
+Ol_data.head(1)
+reg_data.head(1)
+Ol_data.describe()
+reg_data.describe()
+Ol_data.info()
+reg_data.info()
+for k in Ol_data.keys():
+    if Ol_data[k].isnull().any():
+        print(k)
+merge_data = pd.merge(Ol_data,reg_data,how="left",on="NOC",indicator=True)
+merge_data.head(2)
+Ol_data.head(1)
+plt.figure(figsize=(16,4))
+Ol_data[Ol_data.Medal == "Gold"].Age.plot(kind="hist",bins=50,width=.8,color="g")
+plt.xticks(range(1,100,2))
+plt.show()
+plt.figure(figsize=(16,4))
+Ol_data[(Ol_data.Medal == "Gold") & (Ol_data.Age >= 50)].Sport.value_counts().plot(kind="bar",color="c")
+# plt.xticks(range(1,100,2))
+plt.show()
+Ol_data[(Ol_data.Medal == "Gold") & (Ol_data.Age >= 50)].index.size
+plt.figure(figsize=(16,4))
+Ol_data[(Ol_data.Medal == "Gold") & (Ol_data.Sex == "M")].Sport.value_counts().plot(kind="bar",color="c")
+# Ol_data[(Ol_data.Medal == "Gold") & (Ol_data.Sex == "M")].Sport.value_counts().plot(kind="line",color="k")
+plt.show()
+plt.figure(figsize=(16,4))
+Ol_data[(Ol_data.Medal == "Gold") & (Ol_data.Sex == "F")].Sport.value_counts().plot(kind="bar",color="r")
+Ol_data[(Ol_data.Medal == "Gold") & (Ol_data.Sex == "F")].Sport.value_counts().plot(kind="line",color="g")
+plt.xticks(rotation=75)
+plt.show()
+color = ["r","g","b","c","r","g","b","c","m","k","m","k"]
+total_medals = Ol_data[Ol_data.Medal == "Gold"].groupby("NOC")["Medal"].value_counts().reset_index(name="CNT")
+# print(total_medals)
+# total_medals.sort_values(by="count",ascending=False).head(10).plot(kind="bar")
+tmp = total_medals.sort_values(by="CNT",ascending=False).head(10)
+# print(tmp.NOC)
+plt.bar(tmp.NOC,tmp.CNT,color=color)
+plt.xticks(rotation=75)
+plt.show()
+# Ol_data.Weight.isnull().any()
+# Ol_data.Height.isnull().any()
+tmp_df = Ol_data[(Ol_data.Height.notnull()) & (Ol_data.Weight.notnull())]
+tmp_df.head(2)
+plt.figure(figsize=(16,4))
+plt.scatter(tmp_df.Height,tmp_df.Weight,color="g",alpha=.4)
+plt.hlines(125,130,220,color="r")
+plt.vlines(180,25,200,color="r")
+plt.xlabel("Height")
+plt.ylabel("Weight")
+plt.title("Height Vs Weight")
+plt.show()
+male_data = Ol_data[Ol_data.Sex=="M"]
+plt.figure(figsize=(16,8))
+sns.boxplot("Year","Age",data=male_data)
+plt.show()
+male_data = Ol_data[Ol_data.Sex=="M"]
+plt.figure(figsize=(16,8))
+sns.pointplot("Year","Age",data=male_data)
+plt.show()
+female_data = Ol_data[Ol_data.Sex=="F"]
+plt.figure(figsize=(16,8))
+sns.boxplot("Year","Age",data=female_data)
+plt.show()
+male_data = Ol_data[Ol_data.Sex=="M"]
+female_data = Ol_data[Ol_data.Sex=="F"]
+plt.figure(figsize=(16,8))
+sns.pointplot("Year","Age",data=male_data,color="r")
+sns.pointplot("Year","Age",data=female_data)
+plt.show()

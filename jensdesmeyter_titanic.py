@@ -1,0 +1,633 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+import seaborn as sns
+
+sns.set() # setting seaborn default for plots
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+train_data = pd.read_csv("/kaggle/input/titanic/train.csv")
+
+train_data.head()
+test_data = pd.read_csv("/kaggle/input/titanic/test.csv")
+
+test_data.head()
+train_data.shape
+
+train_data.describe()
+train_data.describe(include=['O'])
+train_data.info()
+train_data.isnull().sum()
+test_data.info()
+test_data.isnull().sum()
+survived = train_data[train_data['Survived'] == 1]
+
+not_survived = train_data[train_data['Survived'] == 0]
+
+
+
+print ("Survived: %i (%.1f%%)"%(len(survived), float(len(survived))/len(train_data)*100.0))
+
+print ("Not Survived: %i (%.1f%%)"%(len(not_survived), float(len(not_survived))/len(train_data)*100.0))
+
+print ("Total: %i"%len(train_data))
+train_data.Pclass.value_counts()
+train_data.groupby('Pclass').Survived.value_counts()
+train_data[['Pclass', 'Survived']].groupby(['Pclass'], as_index=False).mean()
+sns.barplot(x='Pclass', y='Survived', data=train_data)
+train_data.Sex.value_counts()
+train_data.groupby('Sex').Survived.value_counts()
+train_data[['Sex', 'Survived']].groupby(['Sex'], as_index=False).mean()
+sns.barplot(x='Sex', y='Survived', data=train_data)
+tab = pd.crosstab(train_data['Pclass'], train_data['Sex'])
+
+print (tab)
+tab.div(tab.sum(1).astype(float), axis=0).plot(kind="bar", stacked=True)
+
+plt.xlabel('Pclass')
+
+plt.ylabel('Percentage')
+sns.factorplot('Sex', 'Survived', hue='Pclass', size=4, aspect=2, data=train_data)
+train_data.Embarked.value_counts()
+train_data.groupby('Embarked').Survived.value_counts()
+train_data[['Embarked', 'Survived']].groupby(['Embarked'], as_index=False).mean()
+sns.barplot(x='Embarked', y='Survived', data=train_data)
+sns.factorplot(x='Pclass', y='Survived', hue='Sex', col='Embarked', data=train_data)
+train_data.Parch.value_counts()
+train_data.groupby('Parch').Survived.value_counts()
+train_data[['Parch', 'Survived']].groupby(['Parch'], as_index=False).mean()
+sns.barplot(x='Parch', y='Survived', ci=None, data=train_data) # ci=None will hide the error bar
+train_data.SibSp.value_counts()
+train_data.groupby('SibSp').Survived.value_counts()
+train_data[['SibSp', 'Survived']].groupby(['SibSp'], as_index=False).mean()
+sns.barplot(x='SibSp', y='Survived', ci=None, data=train_data) # ci=None will hide the error bar
+total_survived = train_data[train_data['Survived']==1]
+
+total_not_survived = train_data[train_data['Survived']==0]
+
+male_survived = train_data[(train_data['Survived']==1) & (train_data['Sex']=="male")]
+
+female_survived = train_data[(train_data['Survived']==1) & (train_data['Sex']=="female")]
+
+male_not_survived = train_data[(train_data['Survived']==0) & (train_data['Sex']=="male")]
+
+female_not_survived = train_data[(train_data['Survived']==0) & (train_data['Sex']=="female")]
+
+
+
+plt.figure(figsize=[15,5])
+
+plt.subplot(111)
+
+sns.distplot(total_survived['Age'].dropna().values, bins=range(0, 81, 1), kde=False, color='blue')
+
+sns.distplot(total_not_survived['Age'].dropna().values, bins=range(0, 81, 1), kde=False, color='red', axlabel='Age')
+
+
+
+plt.figure(figsize=[15,5])
+
+
+
+plt.subplot(121)
+
+sns.distplot(female_survived['Age'].dropna().values, bins=range(0, 81, 1), kde=False, color='blue')
+
+sns.distplot(female_not_survived['Age'].dropna().values, bins=range(0, 81, 1), kde=False, color='red', axlabel='Female Age')
+
+
+
+plt.subplot(122)
+
+sns.distplot(male_survived['Age'].dropna().values, bins=range(0, 81, 1), kde=False, color='blue')
+
+sns.distplot(male_not_survived['Age'].dropna().values, bins=range(0, 81, 1), kde=False, color='red', axlabel='Male Age')
+fig = plt.figure(figsize=(15,5))
+
+ax1 = fig.add_subplot(131)
+
+ax2 = fig.add_subplot(132)
+
+ax3 = fig.add_subplot(133)
+
+
+
+sns.violinplot(x="Embarked", y="Age", hue="Survived", data=train_data, split=True, ax=ax1)
+
+sns.violinplot(x="Pclass", y="Age", hue="Survived", data=train_data, split=True, ax=ax2)
+
+sns.violinplot(x="Sex", y="Age", hue="Survived", data=train_data, split=True, ax=ax3)
+plt.figure(figsize=(15,6))
+
+sns.heatmap(train_data.drop('PassengerId',axis=1).corr(), vmax=0.6, square=True, annot=True)
+train_test_data = [train_data, test_data] # combining train and test dataset
+
+
+
+for dataset in train_test_data:
+
+    dataset['Title'] = dataset.Name.str.extract(' ([A-Za-z]+)\.')
+train_data.head()
+pd.crosstab(train_data['Title'], train_data['Sex'])
+for dataset in train_test_data:
+
+    dataset['Title'] = dataset['Title'].replace(['Lady', 'Countess','Capt', 'Col', \
+
+ 	'Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Other')
+
+
+
+    dataset['Title'] = dataset['Title'].replace('Mlle', 'Miss')
+
+    dataset['Title'] = dataset['Title'].replace('Ms', 'Miss')
+
+    dataset['Title'] = dataset['Title'].replace('Mme', 'Mrs')
+
+    
+
+train_data[['Title', 'Survived']].groupby(['Title'], as_index=False).mean()
+title_mapping = {"Mr": 1, "Miss": 2, "Mrs": 3, "Master": 4, "Other": 5}
+
+for dataset in train_test_data:
+
+    dataset['Title'] = dataset['Title'].map(title_mapping)
+
+    dataset['Title'] = dataset['Title'].fillna(0)
+train_data.head()
+for dataset in train_test_data:
+
+    dataset['Sex'] = dataset['Sex'].map( {'female': 1, 'male': 0} ).astype(int)
+train_data.head()
+train_data.Embarked.unique()
+train_data.Embarked.value_counts()
+for dataset in train_test_data:
+
+    dataset['Embarked'] = dataset['Embarked'].fillna('S')
+train_data.head()
+for dataset in train_test_data:
+
+    dataset['Embarked'] = dataset['Embarked'].map( {'S': 0, 'C': 1, 'Q': 2} ).astype(int)
+train_data.head()
+for dataset in train_test_data:
+
+    age_avg = dataset['Age'].mean()
+
+    age_std = dataset['Age'].std()
+
+    age_null_count = dataset['Age'].isnull().sum()
+
+    
+
+    age_null_random_list = np.random.randint(age_avg - age_std, age_avg + age_std, size=age_null_count)
+
+    dataset['Age'][np.isnan(dataset['Age'])] = age_null_random_list
+
+    dataset['Age'] = dataset['Age'].astype(int)
+
+    
+
+train_data['AgeBand'] = pd.cut(train_data['Age'], 5)
+
+
+
+print (train_data[['AgeBand', 'Survived']].groupby(['AgeBand'], as_index=False).mean())
+train_data.head()
+for dataset in train_test_data:
+
+    dataset.loc[ dataset['Age'] <= 16, 'Age'] = 0
+
+    dataset.loc[(dataset['Age'] > 16) & (dataset['Age'] <= 32), 'Age'] = 1
+
+    dataset.loc[(dataset['Age'] > 32) & (dataset['Age'] <= 48), 'Age'] = 2
+
+    dataset.loc[(dataset['Age'] > 48) & (dataset['Age'] <= 64), 'Age'] = 3
+
+    dataset.loc[ dataset['Age'] > 64, 'Age'] = 4
+train_data.head()
+for dataset in train_test_data:
+
+    dataset['Fare'] = dataset['Fare'].fillna(train_data['Fare'].median())
+train_data['FareBand'] = pd.qcut(train_data['Fare'], 4)
+
+print (train_data[['FareBand', 'Survived']].groupby(['FareBand'], as_index=False).mean())
+train_data.head()
+for dataset in train_test_data:
+
+    dataset.loc[ dataset['Fare'] <= 7.91, 'Fare'] = 0
+
+    dataset.loc[(dataset['Fare'] > 7.91) & (dataset['Fare'] <= 14.454), 'Fare'] = 1
+
+    dataset.loc[(dataset['Fare'] > 14.454) & (dataset['Fare'] <= 31), 'Fare']   = 2
+
+    dataset.loc[ dataset['Fare'] > 31, 'Fare'] = 3
+
+    dataset['Fare'] = dataset['Fare'].astype(int)
+train_data.head()
+for dataset in train_test_data:
+
+    dataset['FamilySize'] = dataset['SibSp'] +  dataset['Parch'] + 1
+
+
+
+print (train_data[['FamilySize', 'Survived']].groupby(['FamilySize'], as_index=False).mean())
+for dataset in train_test_data:
+
+    dataset['IsAlone'] = 0
+
+    dataset.loc[dataset['FamilySize'] == 1, 'IsAlone'] = 1
+
+    
+
+print (train_data[['IsAlone', 'Survived']].groupby(['IsAlone'], as_index=False).mean())
+train_data['FamilyBand'] = pd.qcut(train_data['FamilySize'], 42, duplicates='drop')
+
+print (train_data[['FamilyBand', 'Survived']].groupby(['FamilyBand'], as_index=False).mean())
+train_data.head()
+for dataset in train_test_data:
+
+    dataset.loc[ dataset['FamilySize'] <= 2, 'FamilySize'] = 0
+
+    dataset.loc[(dataset['FamilySize'] > 2) & (dataset['FamilySize'] <= 3), 'FamilySize'] = 1
+
+    dataset.loc[(dataset['FamilySize'] > 3) & (dataset['FamilySize'] <= 4), 'FamilySize'] = 2
+
+    dataset.loc[(dataset['FamilySize'] > 4) & (dataset['FamilySize'] <= 6), 'FamilySize'] = 3
+
+    dataset.loc[(dataset['FamilySize'] > 6) & (dataset['FamilySize'] <= 7), 'FamilySize'] = 4
+
+    dataset.loc[ dataset['FamilySize'] > 7, 'FamilySize'] = 5
+
+    dataset['FamilySize'] = dataset['FamilySize'].astype(int)
+train_data.head()
+train_data.head(1)
+test_data.head(1)
+features_drop = ['Name', 'SibSp', 'Parch', 'Ticket', 'Cabin', 'FamilySize']
+
+train = train_data.drop(features_drop, axis=1)
+
+test = test_data.drop(features_drop, axis=1)
+
+train = train.drop(['PassengerId', 'AgeBand', 'FareBand','FamilyBand'], axis=1)
+train.head()
+test.head()
+X_train = train.drop('Survived', axis=1)
+
+y_train = train['Survived']
+
+X_test = test.drop("PassengerId", axis=1).copy()
+
+
+
+X_train.shape, y_train.shape, X_test.shape
+# Importing Classifier Modules
+
+from sklearn.linear_model import LogisticRegression
+
+from sklearn.svm import SVC, LinearSVC
+
+from sklearn.neighbors import KNeighborsClassifier
+
+from sklearn.tree import DecisionTreeClassifier
+
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.naive_bayes import GaussianNB
+
+from sklearn.linear_model import Perceptron
+
+from sklearn.linear_model import SGDClassifier
+clf = LogisticRegression()
+
+clf.fit(X_train, y_train)
+
+y_pred_log_reg = clf.predict(X_test)
+
+acc_log_reg = round( clf.score(X_train, y_train) * 100, 2)
+
+print (str(acc_log_reg) + ' percent')
+clf = SVC()
+
+clf.fit(X_train, y_train)
+
+y_pred_svc = clf.predict(X_test)
+
+acc_svc = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_svc)
+clf = LinearSVC()
+
+clf.fit(X_train, y_train)
+
+y_pred_linear_svc = clf.predict(X_test)
+
+acc_linear_svc = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_linear_svc)
+clf = KNeighborsClassifier(n_neighbors = 3)
+
+clf.fit(X_train, y_train)
+
+y_pred_knn = clf.predict(X_test)
+
+acc_knn = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_knn)
+clf = DecisionTreeClassifier()
+
+clf.fit(X_train, y_train)
+
+y_pred_decision_tree = clf.predict(X_test)
+
+acc_decision_tree = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_decision_tree)
+clf = RandomForestClassifier(n_estimators=100)
+
+clf.fit(X_train, y_train)
+
+y_pred_random_forest = clf.predict(X_test)
+
+acc_random_forest = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_random_forest)
+clf = GaussianNB()
+
+clf.fit(X_train, y_train)
+
+y_pred_gnb = clf.predict(X_test)
+
+acc_gnb = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_gnb)
+clf = Perceptron(max_iter=5, tol=None)
+
+clf.fit(X_train, y_train)
+
+y_pred_perceptron = clf.predict(X_test)
+
+acc_perceptron = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_perceptron)
+clf = SGDClassifier(max_iter=5, tol=None)
+
+clf.fit(X_train, y_train)
+
+y_pred_sgd = clf.predict(X_test)
+
+acc_sgd = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_sgd)
+from sklearn.metrics import confusion_matrix
+
+import itertools
+
+
+
+clf = RandomForestClassifier(n_estimators=100)
+
+clf.fit(X_train, y_train)
+
+y_pred_random_forest_training_set = clf.predict(X_train)
+
+acc_random_forest = round(clf.score(X_train, y_train) * 100, 2)
+
+print ("Accuracy: %i %% \n"%acc_random_forest)
+
+
+
+class_names = ['Survived', 'Not Survived']
+
+
+
+# Compute confusion matrix
+
+cnf_matrix = confusion_matrix(y_train, y_pred_random_forest_training_set)
+
+np.set_printoptions(precision=2)
+
+
+
+print ('Confusion Matrix in Numbers')
+
+print (cnf_matrix)
+
+print ('')
+
+
+
+cnf_matrix_percent = cnf_matrix.astype('float') / cnf_matrix.sum(axis=1)[:, np.newaxis]
+
+
+
+print ('Confusion Matrix in Percentage')
+
+print (cnf_matrix_percent)
+
+print ('')
+
+
+
+true_class_names = ['True Survived', 'True Not Survived']
+
+predicted_class_names = ['Predicted Survived', 'Predicted Not Survived']
+
+
+
+df_cnf_matrix = pd.DataFrame(cnf_matrix, 
+
+                             index = true_class_names,
+
+                             columns = predicted_class_names)
+
+
+
+df_cnf_matrix_percent = pd.DataFrame(cnf_matrix_percent, 
+
+                                     index = true_class_names,
+
+                                     columns = predicted_class_names)
+
+
+
+plt.figure(figsize = (15,5))
+
+
+
+plt.subplot(121)
+
+sns.heatmap(df_cnf_matrix, annot=True, fmt='d')
+
+
+
+plt.subplot(122)
+
+sns.heatmap(df_cnf_matrix_percent, annot=True)
+models = pd.DataFrame({
+
+    'Model': ['Logistic Regression', 'Support Vector Machines', 'Linear SVC', 
+
+              'KNN', 'Decision Tree', 'Random Forest', 'Naive Bayes', 
+
+              'Perceptron', 'Stochastic Gradient Decent'],
+
+    
+
+    'Score': [acc_log_reg, acc_svc, acc_linear_svc, 
+
+              acc_knn,  acc_decision_tree, acc_random_forest, acc_gnb, 
+
+              acc_perceptron, acc_sgd]
+
+    })
+
+
+
+models.sort_values(by='Score', ascending=False)
+test.head()
+features_drop = ['Name', 'SibSp', 'Parch', 'Ticket', 'Cabin', 'FamilySize','Embarked','Title', 'IsAlone']
+
+train = train_data.drop(features_drop, axis=1)
+
+test = test_data.drop(features_drop, axis=1)
+
+train = train.drop(['PassengerId', 'AgeBand', 'FareBand','FamilyBand'], axis=1)
+
+train.head()
+test.head()
+X_train = train.drop('Survived', axis=1)
+
+y_train = train['Survived']
+
+X_test = test.drop("PassengerId", axis=1).copy()
+
+
+
+X_train.shape, y_train.shape, X_test.shape
+clf = RandomForestClassifier(n_estimators=100)
+
+clf.fit(X_train, y_train)
+
+y_pred_random_forest = clf.predict(X_test)
+
+acc_random_forest = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_random_forest)
+features_drop = ['Name', 'SibSp', 'Ticket', 'Cabin', 'FamilySize','Embarked','Title', 'IsAlone']
+
+train = train_data.drop(features_drop, axis=1)
+
+test = test_data.drop(features_drop, axis=1)
+
+train = train.drop(['PassengerId', 'AgeBand', 'FareBand','FamilyBand'], axis=1)
+
+train.head()
+test.head()
+X_train = train.drop('Survived', axis=1)
+
+y_train = train['Survived']
+
+X_test = test.drop("PassengerId", axis=1).copy()
+
+
+
+X_train.shape, y_train.shape, X_test.shape
+clf = RandomForestClassifier(n_estimators=100)
+
+clf.fit(X_train, y_train)
+
+y_pred_random_forest = clf.predict(X_test)
+
+acc_random_forest = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_random_forest)
+features_drop = ['Name', 'Ticket', 'Cabin', 'SibSp', 'Parch']
+
+train = train_data.drop(features_drop, axis=1)
+
+test = test_data.drop(features_drop, axis=1)
+
+train = train.drop(['PassengerId', 'AgeBand', 'FareBand','FamilyBand'], axis=1)
+
+train.head()
+test.head()
+X_train = train.drop('Survived', axis=1)
+
+y_train = train['Survived']
+
+X_test = test.drop("PassengerId", axis=1).copy()
+
+
+
+X_train.shape, y_train.shape, X_test.shape
+clf = RandomForestClassifier(n_estimators=100)
+
+clf.fit(X_train, y_train)
+
+y_pred_random_forest = clf.predict(X_test)
+
+acc_random_forest = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_random_forest)
+clf = RandomForestClassifier(criterion='gini', 
+
+                             n_estimators=700,
+
+                             min_samples_split=10,
+
+                             min_samples_leaf=1,
+
+                             max_features='auto',
+
+                             oob_score=True,
+
+                             random_state=1,
+
+                             n_jobs=-1)
+
+clf.fit(X_train, y_train)
+
+y_pred_random_forest_final = clf.predict(X_test)
+
+acc_random_forest = round(clf.score(X_train, y_train) * 100, 2)
+
+print (acc_random_forest)
+submission = pd.DataFrame({
+
+        "PassengerId": test["PassengerId"],
+
+        "Survived": y_pred_random_forest_final
+
+    })
+
+
+
+submission.to_csv('submission.csv', index=False)
+
+print("Your submission was successfully saved!")
+
+
+

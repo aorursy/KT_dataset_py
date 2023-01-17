@@ -1,0 +1,59 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# Any results you write to the current directory are saved as output.
+test_data = pd.read_csv("/kaggle/input/titanic/test.csv", index_col = 'PassengerId')
+test_data.head()
+train = pd.read_csv('/kaggle/input/titanic/train.csv', index_col = 'PassengerId')
+train.head()
+train.describe()
+import matplotlib.pyplot as plt
+#matplotlib inline
+import seaborn as sns
+plt.figure(figsize = (14,20))
+sns.barplot(y = train['Survived'], x = train['Pclass'])
+plt.figure(figsize = (14,7))
+sns.lineplot(x = train['Age'], y = train['Survived'])
+plt.figure(figsize = (14,7))
+sns.barplot(x = train['Pclass'], y = train['Fare'])
+from sklearn.ensemble import RandomForestClassifier
+
+#y would be our target variable
+y = train['Survived']
+# I am here just selecting few features because bby general analysis, you can conclude which of the features affect the target variable.
+features = ['Sex', 'Pclass', 'SibSp', 'Parch']
+
+# applying one-hot encoding
+X = pd.get_dummies(train[features])
+
+# now I will apply the same changes to the test dataset so that model works fine.
+T = pd.get_dummies(test_data[features])
+X.head()
+T.head()
+# training the model
+
+model = RandomForestClassifier(n_estimators = 100, max_depth = 5, random_state = 1)
+model.fit(X,y)
+
+# predicting on test dataset
+
+predictions = model.predict(T)
+predictions
+# writing predictions to a sub.csv file for submission to the competition.
+
+output = pd.DataFrame({'PassengerId': test_data.index, 'Survived': predictions})
+output.head()
+output.to_csv('sub.csv', index = False)
+print("Hooray!")

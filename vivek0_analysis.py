@@ -1,0 +1,52 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+
+
+from subprocess import check_output
+
+print(check_output(["ls", "../input"]).decode("utf8"))
+
+
+
+# Any results you write to the current directory are saved as output.
+data = pd.read_csv('../input/2016-FCC-New-Coders-Survey-Data.csv', encoding='utf-8', low_memory=False)
+data['Income'].dropna().describe()
+data['Age'].dropna().describe()
+import numpy as np
+bins = np.arange(data['Income'].dropna().min(), data['Income'].dropna().max(), 2000) # fixed bin size
+import matplotlib.pyplot as plt
+plt.hist(data['Income'].dropna(), 
+
+         bins=bins, 
+
+         alpha=0.5, 
+
+         color='#EDD834',
+
+         label='Income')
+bins_age = np.arange(data['Age'].dropna().min(), data['Age'].dropna().max()) # fixed bin size
+plt.hist(data['Age'].dropna(), 
+
+         bins=bins_age, 
+
+         alpha=0.5, 
+
+         color='#EDD834',
+
+         label='Age')

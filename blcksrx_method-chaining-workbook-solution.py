@@ -1,0 +1,21 @@
+import pandas as pd
+pd.set_option('max_rows', 5)
+from learntools.advanced_pandas.method_chaining import *
+
+chess_games = pd.read_csv("../input/chess/games.csv")
+check_q1(pd.DataFrame())
+chess_games.head()
+check_q1(chess_games.winner.value_counts() / len(chess_games))
+check_q2(chess_games.opening_name.map(lambda n: n.split(":")[0].split("|")[0].split("#")[0].strip()).value_counts())
+check_q3(chess_games.assign(n=0).groupby(["white_id", "victory_status"]).n.count().reset_index())
+check_q4(chess_games.assign(n=0).groupby(["white_id", "victory_status"]).n.count().reset_index().pipe(lambda df: df.loc[df.white_id.isin(chess_games.white_id.value_counts().head(20).index)]))
+kepler = pd.read_csv("../input/kepler-exoplanet-search-results/cumulative.csv")
+kepler
+check_q5(kepler.groupby(['koi_pdisposition', 'koi_disposition']).rowid.count())
+wine_reviews = pd.read_csv("../input/wine-reviews/winemag-data-130k-v2.csv", index_col=0)
+ramen_reviews = pd.read_csv("../input/ramen-ratings/ramen-ratings.csv", index_col=0)
+print(wine_reviews.head())
+print(ramen_reviews.head())
+check_q6(wine_reviews.points.dropna().map(lambda x: (x - 80) / 4 ).value_counts().sort_index().rename_axis("Wine Ratings"))
+check_q7(ramen_reviews[ramen_reviews.Stars != "Unrated"].Stars.astype(float).value_counts().sort_index().rename("Ramen Rating"))
+check_q8(ramen_reviews.Stars.replace('Unrated', None).dropna().astype(float).map(lambda v: round(v * 2) / 2).value_counts().rename("Ramen Rating").sort_index())

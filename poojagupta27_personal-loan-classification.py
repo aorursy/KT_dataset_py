@@ -1,0 +1,310 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+##importing required libraries
+
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+import seaborn as sns
+
+import pandas as pd
+
+import numpy as np
+
+##Model
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.model_selection import GridSearchCV
+
+
+
+##Performance metrics
+
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, recall_score,accuracy_score, make_scorer
+
+##reading the bank data
+
+df1=pd.read_csv('/kaggle/input/personal-loan-modeling/Bank_Personal_Loan_Modelling.csv')
+
+df1.head()
+df1.tail()
+#Removing ID column which is of no relevance
+
+df1.drop(columns =['ID', 'ZIP Code'],inplace=True)
+df1.info()
+
+df1.shape
+df1.isnull().sum()##checking missing values
+df1.describe()
+##Lets see the distribution of target column- Personal Loan
+
+print(df1.groupby('Personal Loan').size())
+
+sns.countplot(df1['Personal Loan'],label="Count")
+
+plt.title("Distribution of Target Variable")
+
+plt.show()
+plt.figure(figsize=(15,10))
+
+plt.subplot(2,3,1)
+
+df1.groupby('Personal Loan')['Income'].mean().plot(kind='bar',title='Income')
+
+plt.subplot(2,3,2)
+
+df1.groupby('Personal Loan')['CCAvg'].mean().plot(kind='bar', title='Average CC Spend')
+
+plt.subplot(2,3,3)
+
+df1.groupby('Personal Loan')['Age'].mean().plot(kind='bar', title='Age')
+
+plt.subplot(2,3,4)
+
+df1.groupby('Personal Loan')['Experience'].mean().plot(kind='bar', title='Experience')
+
+plt.subplot(2,3,5)
+
+df1.groupby('Personal Loan')['Mortgage'].mean().plot(kind='bar', title='Mortagage')
+sns.heatmap(df1.corr())
+
+plt.show()
+sns.lmplot(x='Income',y='CCAvg',data=df1,fit_reg=False,hue='Personal Loan') 
+
+sns.lmplot(x='Income',y='Mortgage',data=df1,fit_reg=False,hue='Personal Loan') 
+
+plt.show()
+##Binning the age since mean is not giving any insight
+
+bin=[23,35,55,67]
+
+group=['Young','Middle','Old']
+
+df1['Age_bin']=pd.cut(df1['Age'],bin,labels=group) #converting numeric into categorical
+
+age= pd.crosstab(df1['Age_bin'],df1['Personal Loan'])
+
+age.plot(kind='bar',stacked=True,title='Age Group')
+
+age.div(age.sum(1).astype(float),axis=0).plot(kind='bar',
+
+                                              stacked=True,title='% Age Group')
+df1.drop(columns =['Age_bin'],inplace=True)
+pd.crosstab(df1['Securities Account'],df1['Personal Loan']).plot(kind='bar',stacked=True,title='Securities')
+
+pd.crosstab(df1['CD Account'],df1['Personal Loan']).plot(kind='bar',stacked=True,title='CD Account')
+pd.crosstab(df1['Online'],df1['Personal Loan']).plot(kind='bar',stacked=True,title='Online')
+
+pd.crosstab(df1['CreditCard'],df1['Personal Loan']).plot(kind='bar',stacked=True,title='Credit Card')
+##Plotting family
+
+edu=pd.crosstab(df1['Family'],df1['Personal Loan'])
+
+edu.div(edu.sum(1).astype(float),axis=0).plot(kind='bar',
+
+                                              stacked=True,title='% Family')
+##Plotting education
+
+edu=pd.crosstab(df1['Education'],df1['Personal Loan'])
+
+edu.div(edu.sum(1).astype(float),axis=0).plot(kind='bar',
+
+                                              stacked=True,title='% Education')
+##splitting the data into train-test in 80-20 ratio
+
+X_train, X_test, y_train, y_test = train_test_split(df1.loc[:, df1.columns != 'Personal Loan'], df1['Personal Loan'], 
+
+                                                    stratify=df1['Personal Loan'], 
+
+                                                    random_state=66, test_size =0.2)
+
+print("Training Data: ",X_train.shape, y_train.shape)
+
+print("Test Data: ",X_test.shape, y_test.shape)
+#Building the model
+
+model_ct = DecisionTreeClassifier(criterion='gini',random_state=1)
+
+model_ct.fit(X_train,y_train) ## training the model
+
+## checking the accuracy of model on training/test data
+
+acc_ct=round(model_ct.score(X_test, y_test)*100,2)
+
+print("Accuracy on training set: {:.3f}".format(model_ct.score(X_train, y_train)))
+
+print("Accuracy on test data: ",acc_ct)
+##Tuning the model
+
+model_t = DecisionTreeClassifier(random_state=1,max_depth=5)
+
+model_t.fit(X_train,y_train) ## training the model
+
+## checking the accuracy of model on test data
+
+acc_t=round(model_t.score(X_test, y_test)*100,2)
+
+print("Accuracy on test data: ",acc_t)
+##Predicting on test data
+
+
+
+predictions_t = model_t.predict(X_test)
+#### Since the data is imbalance, we should not only rely on accuracy and check other metrics as well
+
+print("=== Confusion Matrix ===")
+
+print(confusion_matrix(y_test, predictions_t))
+
+print('\n')
+
+print("=== Classification Report ===")
+
+print(classification_report(y_test, predictions_t))
+
+print('\n')
+
+auc_t = round(roc_auc_score(y_test, predictions_t)*100,2)
+
+print("AUC: ",  auc_t)
+
+recall_t = round(recall_score(y_test, predictions_t)*100,2)
+
+print("Recall: ",  recall_t)
+##Plotting the tree
+
+plt.figure(figsize=(25,10))
+
+a= plot_tree(model_t, 
+
+             feature_names=X_train.columns,
+
+             filled=True, 
+
+              rounded=True, 
+
+              fontsize=14)
+#### Building RF model with 101 tress
+
+rf = RandomForestClassifier(n_estimators=101, random_state=1)
+
+rf.fit(X_train, y_train)
+
+## checking the accuracy of model on training/test data
+
+acc_rf=round(rf.score(X_test, y_test)*100,2)
+
+print("Accuracy on training set: {:.3f}".format(rf.score(X_train, y_train)))
+
+print("Accuracy on test data: ",acc_rf)
+##Predicting on test data
+
+predictions_rf = rf.predict(X_test)
+
+auc_rf = round(roc_auc_score(y_test, predictions_rf)*100,2)
+
+print("AUC: ",  auc_rf)
+
+recall_rf = round(recall_score(y_test, predictions_rf)*100,2)
+
+print("Recall: ",  recall_rf)
+param_grid = {'n_estimators': [101,201,251], 'max_features': [4,5,6,7], 'max_depth':[6,7,8]}
+
+rf1 = GridSearchCV(RandomForestClassifier(), param_grid, cv=10, 
+
+                   scoring=make_scorer(accuracy_score))
+
+rf1.fit(X_train, y_train)
+
+acc_rf1=round(rf1.score(X_test, y_test)*100,2)
+
+print("Accuracy on training set: {:.3f}".format(rf1.score(X_train, y_train)))
+
+print("Accuracy on test data: ",acc_rf1)
+best=rf1.best_params_
+
+print(best)
+##Building the model using best estimators from the result of GridSerachCV
+
+rf2 = RandomForestClassifier(max_depth=8, n_estimators=101, random_state=1,max_features=6)
+
+rf2.fit(X_train, y_train)
+
+acc_rf2=round(rf2.score(X_test, y_test)*100,2)
+
+print("Accuracy on training set: {:.3f}".format(rf1.score(X_train, y_train)))
+
+print("Accuracy on test data: ",acc_rf2)
+##Predicting on test data
+
+predictions_rf2 = rf2.predict(X_test)
+print("=== Confusion Matrix ===")
+
+print(confusion_matrix(y_test, predictions_rf))
+
+print('\n')
+
+print("=== Classification Report ===")
+
+print(classification_report(y_test, predictions_rf))
+
+print('\n')
+
+auc_rf2 = round(roc_auc_score(y_test, predictions_rf)*100,2)
+
+print("AUC: ",  auc_rf)
+
+recall_rf2 = round(recall_score(y_test, predictions_rf)*100,2)
+
+print("Recall: ",  recall_rf)
+featureImportances = pd.Series(rf2.feature_importances_).sort_values(ascending=False)
+
+
+
+sns.barplot(x=round(featureImportances,4), y=X_train.columns, color='y')
+
+plt.xlabel('Features Importance')
+
+plt.show()
+print('---Comparison Of both Models---')
+
+print('Cart Model Accuracy:',acc_t,',Auc:',auc_t,', Recall:',recall_t)
+
+print('RF Model Accuracy:',acc_rf2,',Auc:',auc_rf2,', Recall:',recall_rf2)

@@ -1,0 +1,52 @@
+# modules we'll use
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import datetime
+
+# read in our data
+earthquakes = pd.read_csv("../input/earthquake-database/database.csv")
+landslides = pd.read_csv("../input/landslide-events/catalog.csv")
+volcanos = pd.read_csv("../input/volcanic-eruptions/database.csv")
+
+# set seed for reproducibility
+np.random.seed(0)
+print(earthquakes.head())
+# print the first few rows of the date column
+print(landslides['date'].head())
+# check the data type of our date column
+landslides['date'].dtype
+#checking the date column in earthquake dataframe
+# (note the capital 'D' in date!)
+print(earthquakes['Date'].tail())
+
+# create a new column, date_parsed, with the parsed dates
+landslides['date_parsed'] = pd.to_datetime(landslides['date'], format = "%m/%d/%y")
+# print the first few rows
+landslides['date_parsed'].head()
+# Creating a new column, date_parsed, in the earthquakes
+# dataset that has correctly parsed dates in it. (Don't forget to 
+# double-check that the dtype is correct!)
+
+earthquakes['date_parsed'] = pd.to_datetime(earthquakes['Date'], infer_datetime_format = True )
+print(earthquakes['date_parsed'].head())
+
+# try to get the day of the month from the date column
+day_of_month_landslides = landslides['date'].dt.day
+# get the day of the month from the date_parsed column
+day_of_month_landslides = landslides['date_parsed'].dt.day
+print(day_of_month_landslides.head())
+# Your turn! get the day of the month from the date_parsed column
+day_of_month_earthquakes_parsed = earthquakes['date_parsed'].dt.day
+print(day_of_month_earthquakes_parsed.head())
+# remove na's
+day_of_month_landslides = day_of_month_landslides.dropna()
+
+# plot the day of the month
+sns.distplot(day_of_month_landslides, kde=True, bins=31)
+# Plot the days of the month from your
+# earthquake dataset and make sure they make sense.
+day_of_month_earthquakes_parsed = day_of_month_earthquakes_parsed.dropna()
+sns.distplot(day_of_month_earthquakes_parsed, kde = True, bins = 31)
+
+volcanos['Last Known Eruption'].sample(5)

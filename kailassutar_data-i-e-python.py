@@ -1,0 +1,22 @@
+import pandas as pd
+data=pd.read_csv('../input/student-performance-dataset/Department_Information.csv')
+print(data)
+data.head()
+data.head(3)
+data.tail(3)
+data.to_csv('../file.csv')
+data1=pd.read_excel('../input/student-performance-dataset/Department_Information.xlsx')
+data1.to_csv('../file.xlsx')
+data3=pd.read_csv("../input/student-performance-dataset/Department_Information.txt",sep=",")
+data3.to_csv("../file.txt")
+data4=pd.read_sas("../input/student-performance-dataset/department_information.sas7bdat")
+data4.head(10)
+data4.dtypes
+data4.dtypes
+data5=pd.read_csv('../input/marks-csv/Marks1.csv')
+print(data5)
+data5.dtypes
+data5['Id']=data5.Id.astype('float')
+print(data5['Id'])
+data5['Id']=data5.Id.astype('object')
+data5.dtypes

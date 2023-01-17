@@ -1,0 +1,450 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+np.random.seed(2)
+
+
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import confusion_matrix
+
+import itertools
+
+
+
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+
+
+from keras.models import Sequential
+
+from keras.layers import Dense , Dropout ,Flatten, Conv2D, MaxPooling2D, Activation
+
+from keras.optimizers import Adam ,RMSprop
+
+from keras import  backend as K
+
+from keras.preprocessing.image import ImageDataGenerator
+
+from keras.utils.np_utils import to_categorical
+
+from keras.callbacks import ReduceLROnPlateau
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# Any results you write to the current directory are saved as output.
+train=pd.read_csv('../input/digit-recognizer/train.csv')
+
+test=pd.read_csv('../input/digit-recognizer/test.csv')
+
+
+
+print(train.shape)
+
+print(test.shape)
+
+Y_train = train["label"]
+
+X_train = train.drop(labels = ["label"],axis = 1)
+
+
+
+# free some space
+
+del train 
+
+
+
+print(X_train.shape)
+
+print(Y_train.shape)
+
+
+
+# Normalize the data
+
+X_train = X_train / 255.0
+
+test = test / 255.0
+
+
+
+# reshaping the dataset
+
+# Reshape image in 3 dimensions (height = 28px, width = 28px , canal = 1)
+
+X_train = X_train.values.reshape(-1,28,28,1)
+
+test = test.values.reshape(-1,28,28,1)
+
+
+
+print(X_train.shape)
+
+print(test.shape)
+Y_train = to_categorical(Y_train, num_classes = 10)
+for i in range(6, 9):
+
+    plt.subplot(330 + (i+1))
+
+    plt.imshow(X_train[i][:,:,0])
+#define the convnet 
+
+class LeNet:
+
+	@staticmethod
+
+	def build(input_shape, classes):
+
+		model = Sequential()
+
+		# CONV => RELU => POOL
+
+		model.add(Conv2D(20, kernel_size=5, padding="same",
+
+			input_shape=input_shape))
+
+		model.add(Activation("relu"))
+
+		model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+		# CONV => RELU => POOL
+
+		model.add(Conv2D(50, kernel_size=5, padding="same"))
+
+		model.add(Activation("relu"))
+
+		model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+
+		# Flatten => RELU layers
+
+		model.add(Flatten())
+
+		model.add(Dense(500))
+
+		model.add(Dropout(0.3))
+
+		model.add(Activation("relu"))
+
+ 
+
+		# a softmax classifier
+
+		model.add(Dense(classes))
+
+		model.add(Activation("softmax"))
+
+
+
+		return model
+
+
+
+NB_EPOCH = 20
+
+BATCH_SIZE = 128
+
+VERBOSE = 1
+
+OPTIMIZER = Adam()
+
+VALIDATION_SPLIT=0.2 # For validation with 20 percent of the training data.
+
+
+
+IMG_ROWS, IMG_COLS = 28, 28 # input image dimensions
+
+NB_CLASSES = 10  # number of outputs = number of digits
+
+INPUT_SHAPE = (IMG_ROWS, IMG_COLS, 1)
+
+# initialize the optimizer and model
+
+model = LeNet.build(input_shape=INPUT_SHAPE, classes=NB_CLASSES)
+
+model.compile(loss="categorical_crossentropy", optimizer=OPTIMIZER,
+
+	metrics=["accuracy"])
+
+history = model.fit(X_train, Y_train, 
+
+		batch_size=BATCH_SIZE, epochs=NB_EPOCH, 
+
+		verbose=VERBOSE, validation_split=VALIDATION_SPLIT)
+
+# Set a learning rate annealer
+
+lr_reduction = ReduceLROnPlateau(monitor='val_accuracy', patience=3, verbose=1, factor=0.5, min_lr=0.00001)
+
+
+
+# split the dataset to reserve a validation dataset.
+
+X_train, X_val, Y_train, Y_val = train_test_split(X_train, Y_train, test_size = 0.1, random_state=2)
+
+
+
+# data generator.
+
+datagen = ImageDataGenerator(
+
+        featurewise_center=False,  # set input mean to 0 over the dataset
+
+        samplewise_center=False,  # set each sample mean to 0
+
+        featurewise_std_normalization=False,  # divide inputs by std of the dataset
+
+        samplewise_std_normalization=False,  # divide each input by its std
+
+        zca_whitening=False,  # apply ZCA whitening
+
+        rotation_range=10,  # randomly rotate images in the range (degrees, 0 to 180)
+
+        zoom_range = 0.1, # Randomly zoom image 
+
+        width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)
+
+        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)
+
+        horizontal_flip=False,  # randomly flip images
+
+        vertical_flip=False)  
+
+
+
+
+
+datagen.fit(X_train)
+NB_EPOCH = 30
+
+BATCH_SIZE = 128
+
+VERBOSE = 1
+
+model.compile(loss="categorical_crossentropy", optimizer=OPTIMIZER,
+
+	metrics=["accuracy"])
+
+
+
+# Fit the model
+
+history = model.fit_generator(datagen.flow(X_train,Y_train, batch_size=BATCH_SIZE),
+
+                              epochs = NB_EPOCH, validation_data = (X_val,Y_val),
+
+                              verbose = VERBOSE, steps_per_epoch=X_train.shape[0] // BATCH_SIZE
+
+                              , callbacks=[lr_reduction])
+# list all data in history
+
+print(history.history.keys())
+
+# summarize history for accuracy
+
+plt.plot(history.history['accuracy'])
+
+plt.plot(history.history['val_accuracy'])
+
+plt.title('model accuracy')
+
+plt.ylabel('accuracy')
+
+plt.xlabel('epoch')
+
+plt.legend(['train', 'validate'], loc='upper left')
+
+plt.show()
+
+# summarize history for loss
+
+plt.plot(history.history['loss'])
+
+plt.plot(history.history['val_loss'])
+
+plt.title('model loss')
+
+plt.ylabel('loss')
+
+plt.xlabel('epoch')
+
+plt.legend(['train', 'validate'], loc='upper left')
+
+plt.show()
+def plot_confusion_matrix(cm, classes, title='Confusion matrix', cmap=plt.cm.Blues):
+
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+
+    plt.title(title)
+
+    plt.colorbar()
+
+    tick_marks = np.arange(len(classes))
+
+    plt.xticks(tick_marks, classes, rotation=45)
+
+    plt.yticks(tick_marks, classes)
+
+
+
+    thresh = cm.max() / 2.
+
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+
+        plt.text(j, i, cm[i, j],
+
+                 horizontalalignment="center",
+
+                 color="white" if cm[i, j] > thresh else "black")
+
+
+
+    plt.tight_layout()
+
+    plt.ylabel('True label')
+
+    plt.xlabel('Predicted label')
+
+
+
+# Predict the values from the validation dataset
+
+Y_pred = model.predict(X_val)
+
+# Convert predictions classes to one hot vectors 
+
+Y_pred_classes = np.argmax(Y_pred,axis = 1) 
+
+# Convert validation observations to one hot vectors
+
+Y_true = np.argmax(Y_val,axis = 1) 
+
+# compute the confusion matrix
+
+confusion_mtx = confusion_matrix(Y_true, Y_pred_classes) 
+
+# plot the confusion matrix
+
+plot_confusion_matrix(confusion_mtx, classes = range(10)) 
+# Display some error results 
+
+
+
+errors = (Y_pred_classes - Y_true != 0)
+
+
+
+Y_pred_classes_errors = Y_pred_classes[errors]
+
+Y_pred_errors = Y_pred[errors]
+
+Y_true_errors = Y_true[errors]
+
+X_val_errors = X_val[errors]
+
+
+
+def display_errors(errors_index,img_errors,pred_errors, obs_errors):
+
+    n = 0
+
+    nrows = 3
+
+    ncols = 3
+
+    fig, ax = plt.subplots(nrows,ncols,sharex=True,sharey=True)
+
+    for row in range(nrows):
+
+        for col in range(ncols):
+
+            error = errors_index[n]
+
+            ax[row,col].imshow((img_errors[error]).reshape((28,28)))
+
+            ax[row,col].set_title("Predicted label :{}\nTrue label :{}".format(pred_errors[error],obs_errors[error]))
+
+            n += 1
+
+
+
+# Probabilities of the wrong predicted numbers
+
+Y_pred_errors_prob = np.max(Y_pred_errors,axis = 1)
+
+
+
+# Predicted probabilities of the true values in the error set
+
+true_prob_errors = np.diagonal(np.take(Y_pred_errors, Y_true_errors, axis=1))
+
+
+
+# Difference between the probability of the predicted label and the true label
+
+delta_pred_true_errors = Y_pred_errors_prob - true_prob_errors
+
+
+
+# Sorted list of the delta prob errors
+
+sorted_dela_errors = np.argsort(delta_pred_true_errors)
+
+
+
+# Top 9 errors 
+
+most_important_errors = sorted_dela_errors[-9:]
+
+
+
+# Show the top 9 errors
+
+display_errors(most_important_errors, X_val_errors, Y_pred_classes_errors, Y_true_errors)
+# predict results
+
+results = model.predict(test)
+
+
+
+# select the indix with the maximum probability
+
+results = np.argmax(results,axis = 1)
+
+
+
+results = pd.Series(results,name="Label")
+
+submission = pd.concat([pd.Series(range(1,28001),name = "ImageId"),results],axis = 1)
+
+submission.to_csv("LeNet_mnist_datagen.csv",index=False)

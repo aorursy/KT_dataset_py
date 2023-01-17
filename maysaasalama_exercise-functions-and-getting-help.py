@@ -1,0 +1,95 @@
+# SETUP. You don't need to worry for now about what this code does or how it works.
+
+from learntools.core import binder; binder.bind(globals())
+
+from learntools.python.ex2 import *
+
+print('Setup complete.')
+def round_to_two_places(num):
+
+    """Return the given number rounded to two decimal places. 
+
+    
+
+    >>> round_to_two_places(3.14159)
+
+    3.14
+
+    """
+
+    # Replace this body with your own code.
+
+    # ("pass" is a keyword that does literally nothing. We used it as a placeholder
+
+    # because after we begin a code block, Python requires at least one line of code)
+
+    return round(num, 2)
+
+    
+
+    pass
+
+
+
+q1.check()
+# Uncomment the following for a hint
+
+#q1.hint()
+
+# Or uncomment the following to peek at the solution
+
+#q1.solution()
+def round_test(num):
+
+    return round(num, -4)
+
+
+
+print (round_test(409247027))
+#q2.solution()
+def to_smash(total_candies, n = 3):
+
+    """Return the number of leftover candies that must be smashed after distributing
+
+    the given number of candies evenly between n-friends, where the default number of friends is 3.
+
+    
+
+    >>> to_smash(91)
+
+    1
+
+    
+
+    >>> to_smash(91, 4)
+
+    3
+
+    """
+
+    return total_candies % n
+
+print (to_smash (800, 9))
+
+print (to_smash (800))
+
+q3.check()
+#q3.hint()
+#q3.solution()
+# ruound_to_two_places(9.9999)
+
+round_to_two_places(9.9999)
+x = -10
+
+y = 5
+
+# Which of the two variables above has the smallest absolute value?
+
+smallest_abs = min(abs(x), abs(y))
+x = -10
+
+y = 5
+
+# Which of the two variables above has the smallest absolute value?
+
+smallest_abs = min(abs(x), abs(y))

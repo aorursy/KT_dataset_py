@@ -1,0 +1,245 @@
+# data processing tools 
+import numpy as np 
+import pandas as pd 
+
+# for visualization puposes 
+import matplotlib.pyplot as plt
+import seaborn as sns
+# sns.set(style="white", color_codes=True)
+
+# To supress any warnings. If you want to see the warnings just comment below two lines.
+import warnings
+warnings.filterwarnings("ignore")
+
+import os
+print(os.listdir("../input"))
+# We will import the .csv format data
+# we could have used sqlite database and with some changes it would be same
+iris = pd.read_csv("../input/Iris.csv")
+
+# Showing top 5 (by default) rows of our data
+iris.head()
+iris.info()
+stats = iris.describe()
+stats
+# axis=1 means dropping a colum
+# inplace=True does changes in place (intuitive :P)
+iris.drop(labels=["Id"], axis=1, inplace=True)
+# iris = iris.drop(labels=["Id"], axis = 1)
+iris.columns = ["SepalLength", "SepalWidth", "PetalLength", "PetalWidth", "Species"]
+iris.head()
+print(iris.shape)
+print("What categories are there and how many instances for each category?\n")
+print(iris["Species"].value_counts())
+print("\n\nWhat are the unique categories?")
+print(iris["Species"].unique())
+# How many unique values are there
+print("\n\nHow many unique categories there are?")
+print(iris["Species"].nunique())
+print("\n\nWhat is the shape of our dataframe?")
+print(iris.shape)
+iris.loc[iris["Species"] == "Iris-setosa", ["Species"]] = "Setosa"
+iris.loc[iris["Species"] == "Iris-virginica", ["Species"]] = "Virginica"
+iris.loc[iris["Species"] == "Iris-versicolor", ["Species"]] = "Versicolor"
+iris.head()
+sns.countplot(x="Species", data=iris)
+# modify the size of the plot using matplotlib
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x="SepalLength", y="SepalWidth", data=iris)
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x="SepalLength", y="SepalWidth", hue="Species", data=iris)
+plt.figure(figsize=(15, 8))
+plt.subplot(1,2,1)
+sns.scatterplot(x="SepalLength", y="SepalWidth", hue="Species", data=iris)
+plt.subplot(1, 2, 2)
+sns.scatterplot(x="SepalWidth", y="SepalLength", hue="Species", data=iris)
+plt.figure(figsize=(15, 8))
+plt.subplot(1,2,1)
+sns.scatterplot(x="PetalLength", y="PetalWidth", hue="Species", data=iris)
+plt.subplot(1, 2, 2)
+sns.scatterplot(x="PetalWidth", y="PetalLength", hue="Species", data=iris)
+# height parameter decides the size of the plot here
+sns.lmplot(x="SepalLength", y="SepalWidth", hue="Species", data=iris, height=8, markers=["o", "x", "^"])
+sns.lmplot(x="PetalLength", y="PetalWidth", hue="Species", data=iris, height=8)
+species = ["Setosa", "Versicolor", "Virginica"]
+features = ["SepalLength", "SepalWidth", "PetalLength", "PetalWidth"]
+d = {"Median":[], "Features":[],  "Species":[]}
+for s in species:
+    for f in features:
+        d["Median"].append(iris[iris["Species"] == s][f].mean())
+        d["Features"].append(f)
+        d["Species"].append(s)
+
+        
+new_df = pd.DataFrame(data=d)
+new_df
+plt.figure(figsize=(12, 6))
+sns.lineplot(x="Features", y="Median", hue="Species", data=new_df)
+plt.figure(figsize=(12, 6))
+sns.pointplot(x="Features", y="Median", hue="Species", data=new_df)
+plt.figure(figsize=(20, 15))
+sns.stripplot(x="Species", y="SepalLength", data=iris, jitter=True, size=7)
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.stripplot(x="Species", y="PetalLength", data=iris, jitter=True, size=7)
+plt.subplot(2, 2, 2)
+sns.stripplot(x="Species", y="PetalWidth", data=iris, jitter=True, size=7)
+plt.subplot(2, 2, 3)
+sns.stripplot(x="Species", y="SepalLength", data=iris, jitter=True, size=7)
+plt.subplot(2, 2, 4)
+sns.stripplot(x="Species", y="SepalWidth", data=iris, jitter=True, size=7)
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.stripplot(x="Species", y="PetalLength", data=iris, jitter=False,size=7)
+plt.subplot(2, 2, 2)
+sns.stripplot(x="Species", y="PetalWidth", data=iris, jitter=False, size=7)
+plt.subplot(2, 2, 3)
+sns.stripplot(x="Species", y="SepalLength", data=iris, jitter=False, size=7)
+plt.subplot(2, 2, 4)
+sns.stripplot(x="Species", y="SepalWidth", data=iris, jitter=False, size=7)
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.swarmplot(x="Species", y="PetalLength", data=iris, size=7)
+plt.subplot(2, 2, 2)
+sns.swarmplot(x="Species", y="PetalWidth", data=iris, size=7)
+plt.subplot(2, 2, 3)
+sns.swarmplot(x="Species", y="SepalLength", data=iris, size=7)
+plt.subplot(2, 2, 4)
+sns.swarmplot(x="Species", y="SepalWidth", data=iris, size=7)
+sns.set(style="whitegrid")
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.violinplot(x="Species", y="PetalLength", data=iris)
+plt.subplot(2, 2, 2)
+sns.violinplot(x="Species", y="PetalWidth", data=iris)
+plt.subplot(2, 2, 3)
+sns.violinplot(x="Species", y="SepalLength", data=iris)
+plt.subplot(2, 2, 4)
+sns.violinplot(x="Species", y="SepalWidth", data=iris)
+plt.figure(figsize=(12, 8))
+sns.violinplot(x="Species", y="PetalWidth", data=iris, inner="quartile")
+# for inner = stick
+plt.figure(figsize=(12, 8))
+sns.violinplot(x="Species", y="PetalWidth", data=iris, inner="stick")
+plt.figure(figsize=(15, 15))
+binsize = 10
+plt.subplot(2, 2, 1)
+sns.distplot(a=iris["PetalLength"], bins=binsize)
+plt.subplot(2, 2, 2)
+sns.distplot(a=iris["PetalWidth"], bins=binsize)
+plt.subplot(2, 2, 3)
+sns.distplot(a=iris["SepalLength"], bins=binsize)
+plt.subplot(2, 2, 4)
+sns.distplot(a=iris["SepalWidth"], bins=binsize)
+plt.figure(figsize=(20, 20))
+sns.set(style="dark")
+plt.subplot(2, 2, 1)
+sns.boxplot(x="Species", y="PetalLength", data=iris)
+plt.subplot(2, 2, 2)
+sns.boxplot(x="Species", y="PetalWidth", data=iris)
+plt.subplot(2, 2, 3)
+sns.boxplot(x="Species", y="SepalLength", data=iris)
+plt.subplot(2, 2, 4)
+sns.boxplot(x="Species", y="SepalWidth", data=iris)
+plt.figure(figsize=(20, 20))
+sns.set(style="darkgrid")
+plt.subplot(2, 2, 1)
+# lets try pallete attribute
+sns.boxenplot(x="Species", y="PetalLength", data=iris, palette="Set1")
+plt.subplot(2, 2, 2)
+# some changes as range of y was cutting the boxen plot
+# you can remove this weird syntax and see what changes come in top right plot
+ax = sns.boxenplot(x="Species", y="PetalWidth", data=iris, palette="Set1")
+ax.set(ylim=(0, 2.75))
+plt.subplot(2, 2, 3)
+sns.boxenplot(x="Species", y="SepalLength", data=iris, palette="Set1")
+plt.subplot(2, 2, 4)
+sns.boxenplot(x="Species", y="SepalWidth", data=iris, palette="Set1")
+# We can actually combine the box plot and striplot from before 
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.boxplot(x='Species',y='PetalLength',data=iris, palette="Set1")
+sns.stripplot(x='Species',y='PetalLength',data=iris, jitter=True, color="yellow")
+plt.subplot(2, 2, 2)
+sns.boxplot(x='Species',y='PetalWidth',data=iris, palette="Set1")
+sns.stripplot(x='Species',y='PetalWidth',data=iris, jitter=True, color="yellow")
+plt.subplot(2, 2, 3)
+sns.boxplot(x='Species',y='SepalLength',data=iris, palette="Set1")
+sns.stripplot(x='Species',y='SepalLength',data=iris, jitter=True, color="yellow")
+plt.subplot(2, 2, 4)
+sns.boxplot(x='Species',y='SepalWidth',data=iris, palette="Set1")
+sns.stripplot(x='Species',y='SepalWidth',data=iris, jitter=True, color="yellow")
+# We can actually combine the box plot and striplot from before 
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.boxplot(x='Species',y='PetalLength',data=iris)
+sns.swarmplot(x='Species',y='PetalLength',data=iris,  color="yellow")
+plt.subplot(2, 2, 2)
+sns.boxplot(x='Species',y='PetalWidth',data=iris)
+sns.swarmplot(x='Species',y='PetalWidth',data=iris, color="yellow")
+plt.subplot(2, 2, 3)
+sns.boxplot(x='Species',y='SepalLength',data=iris)
+sns.swarmplot(x='Species',y='SepalLength',data=iris, color="yellow")
+plt.subplot(2, 2, 4)
+sns.boxplot(x='Species',y='SepalWidth',data=iris)
+sns.swarmplot(x='Species',y='SepalWidth',data=iris, color="yellow")
+# We can actually combine the box plot and striplot from before 
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.violinplot(x='Species',y='PetalLength',data=iris, palette="Set1")
+sns.swarmplot(x='Species',y='PetalLength',data=iris,  color="yellow")
+plt.subplot(2, 2, 2)
+sns.violinplot(x='Species',y='PetalWidth',data=iris, palette="Set1")
+sns.swarmplot(x='Species',y='PetalWidth',data=iris, color="yellow")
+plt.subplot(2, 2, 3)
+sns.violinplot(x='Species',y='SepalLength',data=iris, palette="Set1")
+sns.swarmplot(x='Species',y='SepalLength',data=iris, color="yellow")
+plt.subplot(2, 2, 4)
+sns.violinplot(x='Species',y='SepalWidth',data=iris, palette="Set1")
+sns.swarmplot(x='Species',y='SepalWidth',data=iris, color="yellow")
+# We can actually combine the box plot and striplot from before 
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 2, 1)
+sns.boxenplot(x='Species',y='PetalLength',data=iris)
+sns.swarmplot(x='Species',y='PetalLength',data=iris,  color="yellow")
+plt.subplot(2, 2, 2)
+sns.boxenplot(x='Species',y='PetalWidth',data=iris)
+sns.swarmplot(x='Species',y='PetalWidth',data=iris, color="yellow")
+plt.subplot(2, 2, 3)
+sns.boxenplot(x='Species',y='SepalLength',data=iris)
+sns.swarmplot(x='Species',y='SepalLength',data=iris, color="yellow")
+plt.subplot(2, 2, 4)
+sns.boxenplot(x='Species',y='SepalWidth',data=iris)
+sns.swarmplot(x='Species',y='SepalWidth',data=iris, color="yellow")
+# We can also use jointplot to see relation between the data, they also show where 
+# the data values lie
+sns.jointplot(x="SepalLength", y="SepalWidth", data=iris[iris["Species"] == "Setosa"])
+# sns.jointplot(x="SepalLength", y="SepalWidth", data=iris[iris["Species"] == "Virsicolor"])
+# sns.jointplot(x="SepalLength", y="SepalWidth", data=iris[iris["Species"] == "Virginica"])
+sns.jointplot(x="SepalLength", y="SepalWidth", kind="hex", data=iris[iris["Species"] == "Setosa"])
+joint_kws=dict(gridsize=10)
+sns.jointplot(x="SepalLength", y="SepalWidth", kind="hex", data=iris, joint_kws=joint_kws)
+joint_kws=dict(gridsize=7)
+sns.jointplot(x="PetalLength", y="PetalWidth", kind="hex", data=iris, ratio=5, joint_kws=joint_kws)
+sns.jointplot(x="PetalLength", y="PetalWidth", kind="reg", data=iris, ratio=5)
+sns.jointplot(x="PetalLength", y="PetalWidth", data=iris,kind="kde", color="red")
+sns.jointplot(x="SepalLength", y="SepalWidth", data=iris,kind="kde", color="blue")
+sns.kdeplot(data=iris["PetalLength"], data2=iris["PetalWidth"])
+sns.kdeplot(data=iris["PetalLength"], shade=True, color="red")
+sns.kdeplot(data=iris["SepalWidth"])
+sns.FacetGrid(iris, hue="Species", size=5).map(sns.kdeplot, "PetalLength").add_legend()
+sns.FacetGrid(iris, hue="Species", size=5).map(sns.kdeplot, "PetalWidth").add_legend()
+sns.FacetGrid(iris, hue="Species", size=5).map(sns.kdeplot, "SepalLength").add_legend()
+sns.FacetGrid(iris, hue="Species", size=5).map(sns.kdeplot, "SepalWidth").add_legend()
+sns.pairplot(data=iris, hue="Species", size=3, diag_kind="hist")
+sns.pairplot(data=iris, hue="Species", size=3, diag_kind="kde")
+# We have pandas boxplot 
+iris.boxplot(by="Species", figsize=(12, 6))
+plt.subplots(figsize = (10,7))
+from pandas.plotting import andrews_curves
+andrews_curves(frame=iris, class_column="Species", colormap="rainbow")
+plt.subplots(figsize = (10,7))
+from pandas.plotting import parallel_coordinates
+parallel_coordinates(frame=iris, class_column="Species")
+from pandas.plotting import radviz
+radviz(frame=iris, class_column="Species")

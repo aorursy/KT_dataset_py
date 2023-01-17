@@ -1,0 +1,54 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+data=pd.read_csv("/kaggle/input/biomechanical-features-of-orthopedic-patients/column_2C_weka.csv")
+print(plt.style.available) # look at available plot styles
+plt.style.use('ggplot')
+#class hemia ise hastalık vardır.Normal ise yok demektir.
+#Bunu sınıflandıralım
+color_list = ['red' if i=='Abnormal' else 'green' for i in data.loc[:,'class']]
+pd.plotting.scatter_matrix(data.loc[:, data.columns != 'class'],
+                                       c=color_list,
+                                       figsize= [15,15],
+                                       diagonal='hist',
+                                       alpha=0.5,
+                                       s = 200,
+                                       marker = '*',
+                                       edgecolor= "black")
+plt.show()
+sns.countplot(x="class", data=data)
+data.loc[:,'class'].value_counts()
+# KNN
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors = 3)
+x,y = data.loc[:,data.columns != 'class'], data.loc[:,'class']
+knn.fit(x,y)
+prediction = knn.predict(x)
+print('Prediction: {}'.format(prediction))
+# train test split
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.3,random_state = 1)
+knn = KNeighborsClassifier(n_neighbors = 3)
+x,y = data.loc[:,data.columns != 'class'], data.loc[:,'class']
+knn.fit(x_train,y_train)
+prediction = knn.predict(x_test)
+#print('Prediction: {}'.format(prediction))
+print('With KNN (K=3) accuracy is: ',knn.score(x_test,y_test)) # accuracy

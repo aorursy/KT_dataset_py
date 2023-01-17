@@ -1,0 +1,324 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+
+
+import os
+
+print(os.listdir("../input"))
+
+
+
+# Any results you write to the current directory are saved as output.
+import os
+
+import cv2
+
+import matplotlib.pyplot as plt
+
+import pandas as pd
+
+import numpy as np
+
+import json
+
+from keras.models import Sequential, Model
+
+from keras.layers import Dense, Flatten, Activation, Dropout, GlobalAveragePooling2D
+
+from keras.preprocessing.image import ImageDataGenerator
+
+from keras import optimizers, applications
+
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard, EarlyStopping
+
+from keras import backend as K
+train_df = pd.read_csv('/kaggle/input/imet-2019-fgvc6/train.csv')
+
+train_df.head()
+train_df['attribute_ids'] = train_df["attribute_ids"].apply(lambda x:x.split(" "))
+
+train_df["id"]=train_df["id"].apply(lambda x:x+".png")
+
+train_df.head()
+
+    
+#visualizing a few images
+
+item_labels = pd.read_csv('/kaggle/input/imet-2019-fgvc6/labels.csv')
+
+i = 1
+
+plt.figure(figsize=[20,20])
+
+for img_name in os.listdir("../input/imet-2019-fgvc6/train/")[:9]:
+
+    img = cv2.imread("../input/imet-2019-fgvc6/train/%s" % img_name)[...,[2, 1, 0]]
+
+    plt.subplot(3, 3,i)
+
+    plt.imshow(img)
+
+    ids = train_df[train_df["id"] == img_name]["attribute_ids"]
+
+    title_val = []
+
+    for tag_id in ids.values[0]:
+
+        att_name = item_labels[item_labels['attribute_id'].astype(str) == tag_id]['attribute_name'].values[0]
+
+        title_val.append(att_name)
+
+    plt.title(title_val)
+
+    i += 1
+
+    
+
+plt.show()
+
+    
+item_labels.shape
+
+#there are 1103 different categories of artefacts
+lbls = list(map(str, range(1103)))
+
+#Data preprocessing
+
+img_size = 64
+
+
+
+train_datagen=ImageDataGenerator(
+
+    rescale=1./255, 
+
+    validation_split=0.25,
+
+    horizontal_flip = True,    
+
+    zoom_range = 0.3,
+
+    width_shift_range = 0.3,
+
+    height_shift_range=0.3
+
+    )
+
+
+
+train_generator=train_datagen.flow_from_dataframe(
+
+    dataframe=train_df,
+
+    directory="/kaggle/input/imet-2019-fgvc6/train/",
+
+    x_col="id",
+
+    y_col="attribute_ids",
+
+    batch_size=64,
+
+    shuffle=True,
+
+    class_mode="categorical",
+
+    classes=lbls,
+
+    target_size=(img_size,img_size),
+
+    subset='training')
+
+
+
+valid_generator=train_datagen.flow_from_dataframe(
+
+    dataframe=train_df,
+
+    directory="/kaggle/input/imet-2019-fgvc6/train/",
+
+    x_col="id",
+
+    y_col="attribute_ids",
+
+    batch_size=64,
+
+    shuffle=True,
+
+    class_mode="categorical",    
+
+    classes=lbls,
+
+    target_size=(img_size,img_size),
+
+    subset='validation')
+from keras.applications import ResNet50
+
+
+
+model = Sequential()
+
+
+
+
+
+model.add(ResNet50(weights = '/kaggle/input/resnet50/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',include_top = False,input_shape = (64,64,3)))
+model.layers[0].trainable = False
+model.add(Flatten())
+
+model.add(Dense(1024,activation = 'relu'))
+
+model.add(Dropout(0.2))
+
+model.add(Dense(1103,activation = 'softmax'))
+model.summary()
+checkpoint = ModelCheckpoint("model_1.h5", monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+
+early = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto')
+gamma = 2.0
+
+epsilon = K.epsilon()
+
+def focal_loss(y_true, y_pred):
+
+    pt = y_pred * y_true + (1-y_pred) * (1-y_true)
+
+    pt = K.clip(pt, epsilon, 1-epsilon)
+
+    CE = -K.log(pt)
+
+    FL = K.pow(1-pt, gamma) * CE
+
+    loss = K.sum(FL, axis=1)
+
+    return loss
+
+# Metric
+
+
+
+def f2_score(y_true, y_pred):
+
+    beta = 2
+
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)), axis=1)
+
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)), axis=1)
+
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)), axis=1)
+
+    
+
+    precision = true_positives / (predicted_positives + K.epsilon())
+
+    recall = true_positives / (possible_positives + K.epsilon())
+
+    
+
+    return K.mean(((1+beta**2)*precision*recall) / ((beta**2)*precision+recall+K.epsilon()))
+model.compile(optimizers.rmsprop(lr=0.001, decay=1e-6),loss=focal_loss,metrics=[f2_score])
+history = model.fit_generator(generator=train_generator,                   
+
+                                    steps_per_epoch=500,
+
+                                    validation_data=valid_generator,                    
+
+                                    validation_steps=200,
+
+                                    epochs=27,
+
+                                    verbose=0)
+sam_sub_df = pd.read_csv('../input/imet-2019-fgvc6/sample_submission.csv')
+
+sam_sub_df["id"]=sam_sub_df["id"].apply(lambda x:x+".png")
+
+print(sam_sub_df.shape)
+
+sam_sub_df.head()
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+test_generator = test_datagen.flow_from_dataframe(  
+
+        dataframe=sam_sub_df,
+
+        directory = "../input/imet-2019-fgvc6/test",    
+
+        x_col="id",
+
+        target_size = (img_size,img_size),
+
+        batch_size = 1,
+
+        shuffle = False,
+
+        class_mode = None
+
+        )
+test_generator.reset()
+
+predict = model.predict_generator(test_generator, steps = len(test_generator.filenames))
+import operator
+
+predicted_class_indices_3=[]
+
+for i in range(len(predict)):         
+
+    d = {}
+
+    for index, value in enumerate(predict[i]):               
+
+        if value > 0.03:            
+
+            d[index] = value 
+
+    sorted_d = sorted(d.items(), key=operator.itemgetter(1), reverse=True)
+
+    
+
+    # Take only first 10 items
+
+    predicted_class_indices_3.append([i[0] for i in sorted_d[:10]])
+predictions_3=[]
+
+
+
+for i in range(len(predicted_class_indices_3)):
+
+    labels = (train_generator.class_indices)
+
+    labels = dict((v,k) for k,v in labels.items())
+
+    predictions = [labels[k] for k in predicted_class_indices_3[i]]
+
+    predictions_3.append(predictions)
+predict_3 = []
+
+for i in range(len(predictions_3)):
+
+    str3 = " ".join(predictions_3[i])
+
+    predict_3.append(str3)
+filenames=test_generator.filenames
+
+results=pd.DataFrame({"id":filenames,
+
+                      "attribute_ids":predict_3})
+
+results['id'] = results['id'].map(lambda x: str(x)[:-4])
+
+results.to_csv("submission.csv",index=False)

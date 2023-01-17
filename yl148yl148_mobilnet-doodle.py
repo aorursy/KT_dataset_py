@@ -1,0 +1,257 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+# For colab
+#!rm *.zip
+!mkdir ~/.kaggle
+!touch ~/.kaggle/kaggle.json
+!echo "{\"username\":\"yl148yl148\",\"key\":\"b8e2abb75808606a540a758a545baba0\"}" > ~/.kaggle/kaggle.json
+
+!chmod 600 /root/.kaggle/kaggle.json
+
+!mkdir ./input/
+!cd ./input
+# ？!kaggle competitions download -c quickdraw-doodle-recognition
+%matplotlib inline
+from IPython.core.interactiveshell import InteractiveShell
+InteractiveShell.ast_node_interactivity = "all"
+import os
+import ast
+import datetime as dt
+import matplotlib.pyplot as plt
+plt.rcParams['figure.figsize'] = [16, 10]
+plt.rcParams['font.size'] = 14
+import seaborn as sns
+import cv2
+# !pip install tqdm
+from tqdm import tqdm
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Activation
+from tensorflow.keras.metrics import categorical_accuracy, top_k_categorical_accuracy, categorical_crossentropy
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.applications import MobileNet
+from tensorflow.keras.applications.mobilenet import preprocess_input
+start = dt.datetime.now()
+!rm *
+def f2cat(filename):
+    return filename.split('.')[0]
+
+
+class Simplified():
+    def __init__(self, input_path = '../input'):
+        self.input_path = input_path
+    
+    def list_all_categories(self):
+        files = os.listdir(os.path.join(self.input_path, 'quickdraw-doodle-recognition', 'train_simplified'))
+        return sorted([f2cat(f) for f in files][:10],key=str.lower)
+    
+    def read_training_csv(self, category, nrows=None, usecols=None, drawing_transform=False):
+        df = pd.read_csv(os.path.join(self.input_path, 'quickdraw-doodle-recognition', 'train_simplified', category+'.csv'),
+                        nrows=nrows, parse_dates= ['timestamp'], usecols=usecols)
+        if drawing_transform:
+            df['drawing'] = df['drawing'].apply(ast.literal_eval)
+        return df
+start = dt.datetime.now()
+s = Simplified()
+categories = s.list_all_categories()
+print(len(categories))
+# print(categories)
+NCSVS = 100
+for y, cat in tqdm(enumerate(categories)):
+    df = s.read_training_csv(cat, nrows=30000)
+    df['y'] = y
+    df['cv'] = (df.key_id // 10 ** 7) % NCSVS
+    for k in range(NCSVS):
+        filename = 'train_k{}.csv'.format(k)
+        chunk = df[df.cv == k]
+        chunk = chunk.drop(['key_id'], axis=1)
+        if y == 0:
+            chunk.to_csv(filename, index=False)
+        else:
+            chunk.to_csv(filename, mode='a', header=False, index=False)
+            
+for k in tqdm(range(NCSVS)):
+    filename = 'train_k{}.csv'.format(k)
+    if os.path.exists(filename):
+        df = pd.read_csv(filename)
+        df['rnd'] = np.random.rand(len(df))
+        df = df.sort_values(by='rnd').drop('rnd', axis=1)
+        df.to_csv(filename + '.gz', compression='gzip', index=False)
+        os.remove(filename)
+print(df.shape)
+def apk(actual, predicted, k=3):
+    """
+    Source: https://github.com/benhamner/Metrics/blob/master/Python/ml_metrics/average_precision.py
+    """
+    if len(predicted) > k:
+        predicted = predicted[:k]
+    score = 0.0
+    num_hits = 0.0
+    for i, p in enumerate(predicted):
+        if p in actual and p not in predicted[:i]:
+            num_hits += 1.0
+            score += num_hits / (i + 1.0)
+    if not actual:
+        return 0.0
+    return score / min(len(actual), k)
+
+def mapk(actual, predicted, k=3):
+    """
+    Source: https://github.com/benhamner/Metrics/blob/master/Python/ml_metrics/average_precision.py
+    """
+    return np.mean([apk(a, p, k) for a, p in zip(actual, predicted)])
+
+def preds2catids(predictions):
+    return pd.DataFrame(np.argsort(-predictions, axis=1)[:, :3], columns=['a', 'b', 'c'])
+
+def top_3_accuracy(y_true, y_pred):
+    return top_k_categorical_accuracy(y_true, y_pred, k=3)
+DP_DIR = ''
+INPUT_DIR = '../quickdraw-doodle-recognition/'
+
+BASE_SIZE = 256
+NCSVS = 100
+NCATS = 340
+np.random.seed(seed=1987)
+tf.random.set_seed(seed=1987)
+
+def f2cat(filename: str) -> str:
+    return filename.split('.')[0]
+
+# def list_all_categories():
+#     files = os.listdir(os.path.join(INPUT_DIR, 'shuffle-csvs'))
+#     return sorted([f2cat(f) for f in files], key=str.lower)
+STEPS = 800
+EPOCHS = 30
+size = 64
+# size = 128
+# batchsize = 680
+batchsize = 800
+model = MobileNet(input_shape=(size, size, 1), alpha=1., weights=None, classes=NCATS)
+model.compile(optimizer=Adam(lr=0.002), loss='categorical_crossentropy',
+              metrics=[categorical_crossentropy, categorical_accuracy, top_3_accuracy])
+print(model.summary())
+def draw_cv2(raw_strokes, size=256, lw=6, time_color=True):
+    img = np.zeros((BASE_SIZE, BASE_SIZE), np.uint8)
+    for t, stroke in enumerate(raw_strokes):
+        for i in range(len(stroke[0]) - 1):
+            color = 255 - min(t, 10) * 13 if time_color else 255
+            _ = cv2.line(img, (stroke[0][i], stroke[1][i]),
+                         (stroke[0][i + 1], stroke[1][i + 1]), color, lw)
+    if size != BASE_SIZE:
+        return cv2.resize(img, (size, size))
+    else:
+        return img
+
+def image_generator_xd(size, batchsize, ks, lw=6, time_color=True):
+    while True:
+        for k in np.random.permutation(ks):
+            filename = os.path.join(DP_DIR, 'train_k{}.csv.gz'.format(k))
+            for df in pd.read_csv(filename, chunksize=batchsize):
+                df['drawing'] = df['drawing'].apply(ast.literal_eval)
+                x = np.zeros((len(df), size, size, 1))
+                for i, raw_strokes in enumerate(df.drawing.values):
+                    x[i, :, :, 0] = draw_cv2(raw_strokes, size=size, lw=lw,
+                                             time_color=time_color)
+                x = preprocess_input(x).astype(np.float32)
+                y = keras.utils.to_categorical(df.y, num_classes=NCATS)
+                yield x, y
+
+def df_to_image_array_xd(df, size, lw=6, time_color=True):
+    df['drawing'] = df['drawing'].apply(ast.literal_eval)
+    x = np.zeros((len(df), size, size, 1))
+    for i, raw_strokes in enumerate(df.drawing.values):
+        x[i, :, :, 0] = draw_cv2(raw_strokes, size=size, lw=lw, time_color=time_color)
+    x = preprocess_input(x).astype(np.float32)
+    return x
+valid_df = pd.read_csv(os.path.join(DP_DIR, 'train_k{}.csv.gz'.format(NCSVS - 1)), nrows=34000)
+x_valid = df_to_image_array_xd(valid_df, size)
+y_valid = keras.utils.to_categorical(valid_df.y, num_classes=NCATS)
+print(x_valid.shape, y_valid.shape)
+print('Validation array memory {:.2f} GB'.format(x_valid.nbytes / 1024.**3 ))
+train_datagen = image_generator_xd(size=size, batchsize=batchsize, ks=range(NCSVS - 1))
+x, y = next(train_datagen)
+n = 8
+fig, axs = plt.subplots(nrows=n, ncols=n, sharex=True, sharey=True, figsize=(12, 12))
+for i in range(n**2):
+    ax = axs[i // n, i % n]
+    (-x[i]+1)/2
+    ax.imshow((-x[i, :, :, 0] + 1)/2, cmap=plt.cm.gray)
+    ax.axis('off')
+plt.tight_layout()
+fig.savefig('gs.png', dpi=300)
+plt.show();
+EPOCHS=3 # debug
+callbacks = [
+    ReduceLROnPlateau(monitor='val_categorical_accuracy', factor=0.5, patience=5,
+                      min_delta=0.005, mode='max', cooldown=3, verbose=1)
+]
+hists = []
+hist = model.fit_generator(
+    train_datagen, steps_per_epoch=STEPS, epochs=EPOCHS, verbose=1,
+    validation_data=(x_valid, y_valid),
+    callbacks = callbacks
+)
+hists.append(hist)
+hist_df = pd.DataFrame(hist.history)
+hist_df.to_csv('gs_mobile_history.csv', index=False)
+fig, axs = plt.subplots(nrows=2, sharex=True, figsize=(16, 10))
+axs[0].plot(hist_df.val_categorical_accuracy, lw=5, label='Validation Accuracy')
+axs[0].plot(hist_df.categorical_accuracy, lw=5, label='Training Accuracy')
+axs[0].set_ylabel('Accuracy')
+axs[0].set_xlabel('Epoch')
+axs[0].grid()
+axs[0].legend(loc=0)
+axs[1].plot(hist_df.val_categorical_crossentropy, lw=5, label='Validation MLogLoss')
+axs[1].plot(hist_df.categorical_crossentropy, lw=5, label='Training MLogLoss')
+axs[1].set_ylabel('MLogLoss')
+axs[1].set_xlabel('Epoch')
+axs[1].grid()
+axs[1].legend(loc=0)
+fig.savefig('hist.png', dpi=300)
+plt.show();
+valid_predictions = model.predict(x_valid, batch_size=128, verbose=1)
+map3 = mapk(valid_df[['y']].values, preds2catids(valid_predictions).values)
+print('Map3: {:.3f}'.format(map3))
+test = pd.read_csv('../input/quickdraw-doodle-recognition/test_simplified.csv')
+test.head()
+x_test = df_to_image_array_xd(test, size)
+print(test.shape, x_test.shape)
+print('Test array memory {:.2f} GB'.format(x_test.nbytes / 1024.**3 ))
+test_predictions = model.predict(x_test, batch_size=128, verbose=1)
+
+top3 = preds2catids(test_predictions)
+top3.head()
+top3.shape
+
+id2cat = {k: cat.replace(' ', '_') for k, cat in enumerate(categories)}
+top3cats = top3.replace(id2cat)
+top3cats.head()
+top3cats.shape
+test['word'] = top3cats['a'] + ' ' + top3cats['b'] + ' ' + top3cats['c']
+submission = test[['key_id', 'word']]
+submission.to_csv('gs_mn_submission_{}.csv'.format(int(map3 * 10**4)), index=False)
+submission.head()
+submission.shape
+end = dt.datetime.now()
+print('Latest run {}.\nTotal time {}s'.format(end, (end - start).seconds))

@@ -1,0 +1,6 @@
+td = pd.read_csv("../input/timesData.csv")
+td.tail()
+td.head(5)
+td.world_rank.unique()
+int(td.world_rank[1:10])
+td.hist()

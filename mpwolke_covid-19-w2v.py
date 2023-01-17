@@ -1,0 +1,222 @@
+#codes from Rodrigo Lima  @rodrigolima82
+
+from IPython.display import Image
+
+Image(url = 'data:image/jpeg;base64,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',width=400,height=400)
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import seaborn as sns
+
+import plotly.graph_objs as go
+
+import plotly.offline as py
+
+import plotly.express as px
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# Any results you write to the current directory are saved as output.
+from gensim.models import Word2Vec
+
+
+
+model = Word2Vec.load('/kaggle/input/w2v-model/saved_model/w2v_model_on_all_abstract_full_text.w2v')
+model.wv.most_similar('mechanically_ventilate', topn=20)
+model.wv.most_similar('icu', topn=20)
+keywords = ["infection", "virus",\
+
+             "respiratory",\
+
+            "rna",\
+
+            "cov"]
+
+
+
+print("Most similar words to keywords")
+
+print("")
+
+
+
+#top_words_list = []
+
+for word in keywords:
+
+    top_words = model.wv.most_similar(word, topn=20)
+
+    print(word + ":")
+
+    for idx, top_word in enumerate(top_words):
+
+        print(str(idx+1) + ". " + top_word[0])
+
+        #top_words_list.append(top_word[0])
+
+    print("")
+model['coronavirus'].shape
+words = [word for word in keywords]
+
+X = model[words]
+
+X.shape
+from sklearn.decomposition import PCA
+
+pca = PCA(n_components=2)
+
+result = pca.fit_transform(X)
+
+df = pd.DataFrame(result, columns=["Component 1", "Component 2"])
+
+df
+df["Word"] = words
+
+df["Distance"] = np.sqrt(df["Component 1"]**2 + df["Component 2"]**2)
+
+df
+sns.scatterplot(data=df, x="Component 1", y="Component 2", hue="Distance",size="Distance")
+fig = px.scatter(df, x="Component 1", y="Component 2", text="Word", color="Distance", color_continuous_scale="agsunset",size="Distance")
+
+fig.update_traces(textposition='top center')
+
+fig.layout.xaxis.autorange = True
+
+fig.data[0].marker.line.width = 1
+
+fig.data[0].marker.line.color = 'rgb(0, 0, 0)'
+
+fig.update_layout(height=800, title_text="2D PCA of Word2Vec embeddings", template="plotly_white", paper_bgcolor="#f0f0f0")
+
+fig.show()
+keyword = keywords[-1]
+
+keyword
+similar_words = model.wv.most_similar(keyword, topn=20)
+
+df_similar_words = pd.DataFrame(similar_words, columns = ['word', 'dist'])
+
+df_similar_words
+words = [word for word in df_similar_words['word'].tolist()]
+
+X = model[words]
+
+result = pca.fit_transform(X)
+
+df = pd.DataFrame(result, columns=["Component 1", "Component 2"])
+
+df["Word"] = df_similar_words['word']
+
+word_emb = df[["Component 1", "Component 2"]].loc[0]
+
+df["Distance"] = np.sqrt((df["Component 1"] - word_emb[0])**2 + (df["Component 2"] - word_emb[1])**2)
+
+fig = px.scatter(df[2:], x="Component 1", y="Component 2", text="Word", color="Distance", color_continuous_scale="viridis",size="Distance")
+
+fig.update_traces(textposition='top center')
+
+fig.layout.xaxis.autorange = True
+
+fig.data[0].marker.line.width = 1
+
+fig.data[0].marker.line.color = 'rgb(0, 0, 0)'
+
+fig.update_layout(height=800, title_text="2D PCA of words related to {}".format(keyword), template="plotly_white", paper_bgcolor="#f0f0f0")
+
+fig.show()
+keyword = 'antiretroviral'
+
+similar_words = model.wv.most_similar(keyword, topn=20)
+
+df_similar_words = pd.DataFrame(similar_words, columns = ['word', 'dist'])
+
+words = [word for word in df_similar_words['word'].tolist()]
+
+X = model[words]
+
+result = pca.fit_transform(X)
+
+df = pd.DataFrame(result, columns=["Component 1", "Component 2"])
+
+df["Word"] = df_similar_words['word']
+
+word_emb = df[["Component 1", "Component 2"]].loc[0]
+
+df["Distance"] = np.sqrt((df["Component 1"] - word_emb[0])**2 + (df["Component 2"] - word_emb[1])**2)
+
+fig = px.scatter(df[2:], x="Component 1", y="Component 2", text="Word", color="Distance", color_continuous_scale="viridis",size="Distance")
+
+fig.update_traces(textposition='top center')
+
+fig.layout.xaxis.autorange = True
+
+fig.data[0].marker.line.width = 1
+
+fig.data[0].marker.line.color = 'rgb(0, 0, 0)'
+
+fig.update_layout(height=800, title_text="2D PCA of words related to {}".format(keyword), template="plotly_white", paper_bgcolor="#f0f0f0")
+
+fig.show()
+keyword = 'cyclosporine'
+
+similar_words = model.wv.most_similar(keyword, topn=20)
+
+df_similar_words = pd.DataFrame(similar_words, columns = ['word', 'dist'])
+
+words = [word for word in df_similar_words['word'].tolist()]
+
+X = model[words]
+
+result = pca.fit_transform(X)
+
+df = pd.DataFrame(result, columns=["Component 1", "Component 2"])
+
+df["Word"] = df_similar_words['word']
+
+word_emb = df[["Component 1", "Component 2"]].loc[0]
+
+df["Distance"] = np.sqrt((df["Component 1"] - word_emb[0])**2 + (df["Component 2"] - word_emb[1])**2)
+
+fig = px.scatter(df[2:], x="Component 1", y="Component 2", text="Word", color="Distance", color_continuous_scale="viridis",size="Distance")
+
+fig.update_traces(textposition='top center')
+
+fig.layout.xaxis.autorange = True
+
+fig.data[0].marker.line.width = 1
+
+fig.data[0].marker.line.color = 'rgb(0, 0, 0)'
+
+fig.update_layout(height=800, title_text="2D PCA of words related to {}".format(keyword), template="plotly_white", paper_bgcolor="#f0f0f0")
+
+fig.show()
+#codes from Rodrigo Lima  @rodrigolima82
+
+from IPython.display import Image
+
+Image(url = 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcRNlm3ovRoZlRQ7gWfOp8B_Q_PGu5B8tP-oosWRpHmGN3ZiFmOv&usqp=CAU',width=400,height=400)

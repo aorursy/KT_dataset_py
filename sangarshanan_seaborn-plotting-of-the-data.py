@@ -1,0 +1,76 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+data = pd.read_csv('../input/h1b_kaggle.csv')
+data.head(2)
+data['CASE_STATUS'].unique()
+status = data['CASE_STATUS'].value_counts()
+plt.figure(figsize=(10,6))
+sns.barplot(status.index, status.values, alpha=1)
+plt.xticks(rotation='vertical')
+plt.xlabel('Case Status', fontsize=14)
+plt.ylabel('Number of applicants', fontsize=14)
+plt.title("Number of applicants with respect to case status", fontsize=16)
+plt.show()
+employer = data['EMPLOYER_NAME'].value_counts()
+employer = employer[(employer.values > 5000)]
+plt.figure(figsize=(15,6))
+sns.barplot(employer.index, employer.values, alpha=0.8)
+plt.xticks(rotation='vertical')
+plt.xlabel('Company Name', fontsize=14)
+plt.ylabel('Number of applicants', fontsize=14)
+plt.title("Number of applicants with respect to Company Name", fontsize=16)
+plt.show()
+job = data['JOB_TITLE'].value_counts()
+job = job[(job.values > 6000)]
+plt.figure(figsize=(15,6))
+sns.barplot(job.index, job.values, alpha=1)
+plt.xticks(rotation='vertical')
+plt.xlabel('Job Title', fontsize=14)
+plt.ylabel('Number of applicants', fontsize=14)
+plt.title("Number of applicants with respect to the Job Title", fontsize=16)
+plt.show()
+full = data['FULL_TIME_POSITION'].value_counts()
+colors = ['lightskyblue', 'lightcoral']
+plt.pie(full.values, labels=full.index, colors=colors, autopct='%1.1f%%',startangle=140)
+plt.title('Whether if they have a full time job: Y-YES ; N-NO')
+plt.axis('equal')
+plt.show()
+years = sorted(list((data['YEAR'].unique())))
+##### Remove the NAN element ####
+years.pop()
+##### Convert float to integer ####
+years = [ int(x) for x in years ]
+passed = data[(data['CASE_STATUS']=='CERTIFIED')]
+values = list(passed.groupby('YEAR').size())
+sum(values) == len(passed)
+plt.figure(figsize=(15,6))
+plt.plot(years,values, color = 'g')
+plt.title('Number of applications CERTIFIED with respect to YEARS')
+plt.xlabel('YEAR')
+plt.ylabel('NUMBER OF APPLICATIONS')
+plt.show()
+failed = data[(data['CASE_STATUS']=='DENIED')]
+denied = list(failed.groupby('YEAR').size())
+len(failed) == sum(denied)
+plt.figure(figsize=(15,6))
+plt.plot(years,denied, color = 'y')
+plt.title('Number of applications DENIED with respect to YEARS')
+plt.xlabel('YEAR')
+plt.ylabel('NUMBER OF APPLICATIONS')
+plt.show()
+np.mean(data['PREVAILING_WAGE'])
+wage = (data.groupby('YEAR').sum())['PREVAILING_WAGE']
+plt.figure(figsize=(15,6))
+sns.barplot(x=wage.index,y=wage.values)
+plt.show()
+work = data['WORKSITE'].value_counts()
+place = work[(work.values>10000)]
+plt.figure(figsize=(16,6))
+sns.barplot(place.index, place.values, alpha=1)
+plt.xticks(rotation='vertical')
+plt.xlabel('Work place', fontsize=14)
+plt.ylabel('Number of applicants', fontsize=14)
+plt.title("Number of applicants with respect to the WORKPLACE", fontsize=16)
+plt.show()

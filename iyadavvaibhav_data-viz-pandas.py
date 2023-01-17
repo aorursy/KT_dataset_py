@@ -1,0 +1,33 @@
+import pandas as pd
+import numpy as np
+%matplotlib inline
+df1 = pd.read_csv('../input/titanic.csv')
+df2 = pd.read_csv('../input/tips.csv')
+df1['fare'].hist()
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
+df1['age'].hist()
+plt.style.use('bmh')
+df1['age'].hist()
+df3.plot.area()
+df1.head()
+df3 = pd.DataFrame(np.random.rand(40,4),columns='A B C D'.split())
+df3.head()
+df3.count().plot.bar()
+df3.sum().plot.bar()
+df3.mean().plot.bar()
+df3.sum()
+df3.plot.bar(stacked=True)
+df3['A'].plot.hist(bins=10)
+df3['A'].hist()
+df3['A'].plot.line()
+df3['A'].plot.line(figsize=(12,3), lw=0.4)
+df3.plot.scatter(x='A',y='B')
+df3.plot.scatter(x='A',y='B',c='C')
+df3.plot.scatter(x='A',y='B',c='C',s=df3['D']*200,cmap='coolwarm')
+df3.boxplot()
+df3.plot.box()
+df3.plot.hexbin(x='A',y='B',gridsize=10,cmap='Oranges')
+
+df3.plot.kde()
+df3.plot.density()

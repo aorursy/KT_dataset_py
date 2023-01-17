@@ -1,0 +1,1 @@
+!cat /kaggle/input/arxiv/authors-parsed.json | sed 's/],/\n/g' | grep "Derek J." | grep "Cranshaw"

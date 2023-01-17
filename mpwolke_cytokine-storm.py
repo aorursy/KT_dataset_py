@@ -1,0 +1,126 @@
+#codes from Rodrigo Lima  @rodrigolima82
+
+from IPython.display import Image
+
+Image(url = 'data:image/jpeg;base64,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',width=400,height=400)
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import seaborn as sns
+
+import matplotlib.pyplot as plt
+
+import plotly.graph_objs as go
+
+import plotly.offline as py
+
+import plotly.express as px
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+nRowsRead = 1000 # specify 'None' if want to read whole file
+
+df = pd.read_csv('../input/cusersmarildownloadscytokinecsv/cytokine.csv', delimiter=';', encoding = "ISO-8859-1", nrows = nRowsRead)
+
+df.dataframeName = 'cytokine.csv'
+
+nRow, nCol = df.shape
+
+print(f'There are {nRow} rows and {nCol} columns')
+df.head()
+df.corr()
+
+plt.figure(figsize=(10,4))
+
+sns.heatmap(df.corr(),annot=True,cmap='Greens')
+
+plt.show()
+fig = px.parallel_categories(df, color="1447617_at", color_continuous_scale=px.colors.sequential.Viridis)
+
+fig.show()
+df['1447617_at'].hist()
+
+plt.show()
+fig = px.scatter_matrix(df)
+
+fig.show()
+# 3D Scatter Plot
+
+fig = px.scatter_3d(df, x='1416873_a_at', y='1447617_at', z='Samples')
+
+fig.show()
+fig = go.Figure(data=[go.Scatter(
+
+    x=df['Samples'][0:10],
+
+    y=df['1416873_a_at'][0:10],
+
+    mode='markers',
+
+    marker=dict(
+
+        color=[145, 140, 135, 130, 125, 120,115,110,105,100],
+
+        size=[100, 90, 70, 60, 60, 60,50,50,40,35],
+
+        showscale=True
+
+        )
+
+)])
+
+fig.update_layout(
+
+    title='Cytokine distribution',
+
+    xaxis_title="Samples",
+
+    yaxis_title="1416873_a_at",
+
+)
+
+fig.show()
+fig = px.bar(df[['Samples','1447617_at']].sort_values('1447617_at', ascending=False), 
+
+                        y = "1447617_at", x= "Samples", color='1447617_at', template='ggplot2')
+
+fig.update_xaxes(tickangle=45, tickfont=dict(family='Rockwell', color='crimson', size=14))
+
+fig.update_layout(title_text="Cytokine Distribution")
+
+
+
+fig.show()
+#codes from Rodrigo Lima  @rodrigolima82
+
+from IPython.display import Image
+
+Image(url = 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcT6WI4RMJawRVi8BSnKD39ImxZLuDvaHfq7pa0ljLEvON0zyQpW&usqp=CAU',width=400,height=400)

@@ -1,0 +1,64 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# Any results you write to the current directory are saved as output.
+import pandas as pd
+
+student_job = pd.read_csv("../input/student-job/student_job.csv")
+
+student_job.head()
+from sklearn import preprocessing
+
+set=student_job.apply(preprocessing.LabelEncoder().fit_transform)
+
+set.head()
+import pandas as pd
+
+student_job = pd.read_csv("../input/student-job/student_job.csv")
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import accuracy_score
+
+from sklearn.naive_bayes import GaussianNB
+
+predictors=set.iloc[:,0:4]
+
+test=set.iloc[:,4]
+
+predictors_train,predictors_test,target_train,target_test=train_test_split()
+
+gnb = GaussianNB()
+
+model = gnb.fit(predictors_train, target_train)
+
+prediction = model.predict(predictors_test)
+
+accuracy_score(target_test, prediction, normalize = True)

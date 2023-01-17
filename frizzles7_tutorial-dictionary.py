@@ -1,0 +1,143 @@
+from gensim.matutils import sparse2full 
+from gensim.corpora import Dictionary
+from gensim.models import TfidfModel
+from multiprocessing import Pool
+from tqdm import tqdm
+import sqlite3 as sql
+import pandas as pd
+import numpy as np
+import logging
+import time
+import re
+
+db = '../input/english-wikipedia-articles-20170820-sqlite/enwiki-20170820.db'
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+def get_query(select, db=db):
+    '''
+    1. Connects to SQLite database (db)
+    2. Executes select statement
+    3. Return results and column names
+    
+    Input: 'select * from analytics limit 2'
+    Output: ([(1, 2, 3)], ['col_1', 'col_2', 'col_3'])
+    '''
+    with sql.connect(db) as conn:
+        c = conn.cursor()
+        c.execute(select)
+        col_names = [str(name[0]).lower() for name in c.description]
+    return c.fetchall(), col_names
+select = '''select * from articles limit 5'''
+data, cols = get_query(select)
+df = pd.DataFrame(data, columns=cols)
+df
+def get_article_text(article_id):
+    '''
+    1. Construct select statement
+    2. Retrieve all section_texts associated with article_id
+    3. Join section_texts into a single string (article_text)
+    4. Return article_text
+    
+    Input: 100
+    Output: ['the','austroasiatic','languages','in',...]
+    '''
+    select = '''select section_text from articles where article_id=%d''' % article_id
+    docs, _ = get_query(select)
+    docs = [doc[0] for doc in docs]
+    doc = '\n'.join(docs)
+    return doc
+article_text = get_article_text(0)
+print(article_text)
+def tokenize(text, lower=True):
+    '''
+    1. Strips apostrophes
+    2. Searches for all alpha tokens (exception for underscore)
+    3. Return list of tokens
+
+    Input: 'The 3 dogs jumped over Scott's tent!'
+    Output: ['the', 'dogs', 'jumped', 'over', 'scotts', 'tent']
+    '''
+    text = re.sub("'", "", text)
+    if lower:
+        tokens = re.findall('''[a-z_]+''', text.lower())
+    else:
+        tokens = re.findall('''[A-Za-z_]''', text)
+    return tokens
+tokens = tokenize(article_text)
+print(tokens[:5])
+len(tokens)
+dictionary = Dictionary([tokens])
+def get_article_tokens(article_id):
+    '''
+    1. Construct select statement
+    2. Retrieve all section_texts associated with article_id
+    3. Join section_texts into a single string (article_text)
+    4. Tokenize article_text
+    5. Return list of tokens
+    
+    Input: 100
+    Output: ['the','austroasiatic','languages','in',...]
+    '''
+    select = '''select section_text from articles where article_id=%d''' % article_id
+    docs, _ = get_query(select)
+    docs = [doc[0] for doc in docs]
+    doc = '\n'.join(docs)
+    tokens = tokenize(doc)
+    return tokens
+# First, we need to grab all article_ids from the database
+select = '''select distinct article_id from articles'''
+article_ids, _ = get_query(select)
+article_ids = [article_id[0] for article_id in article_ids]
+len(article_ids)
+start = time.time()
+# Grab a random sample of 10K articles and read into memory
+sample_ids = np.random.choice(article_ids, size=10000, replace=False)
+docs = []
+for sample_id in tqdm(sample_ids):
+    docs.append(get_article_tokens(sample_id))
+# Train dictionary
+dictionary = Dictionary(docs)
+end = time.time()
+print('Time to train dictionary from in-memory sample: %0.2fs' % (end - start))
+start = time.time()
+# Grab a random sample of 10K articles and set up a generator
+sample_ids = np.random.choice(article_ids, size=10000, replace=False)
+docs = (get_article_tokens(sample_id) for sample_id in sample_ids)
+# Train dictionary
+dictionary = Dictionary(docs)
+end = time.time()
+print('Time to train dictionary from generator: %0.2fs' % (end - start))
+start = time.time()
+# Grab a random sample of 10K articles and set up a pooled-process generator
+sample_ids = np.random.choice(article_ids, size=10000, replace=False)
+with Pool(processes=4, maxtasksperchild=2048) as pool:
+    docs = pool.imap_unordered(get_article_tokens, sample_ids)
+    dictionary = Dictionary(docs)
+end = time.time()
+print('Time to train dictionary from pooled-process generator: %0.2fs' % (end - start))
+class Corpus():
+    def __init__(self, article_ids):
+        self.article_ids = article_ids
+        self.len = len(article_ids)
+
+    def __iter__(self):
+        article_ids = np.random.choice(self.article_ids, self.len, replace=False)
+        with Pool(processes=4, maxtasksperchild=2048) as pool:
+            docs = pool.imap_unordered(get_article_tokens, article_ids)
+            for doc in docs:
+                yield doc
+
+    def __len__(self):
+        return self.len
+dictionary = Dictionary.load('../input/english-wikipedia-articles-20170820-models/enwiki_2017_08_20.dict')
+len(dictionary.dfs)
+pd.value_counts(list(dictionary.dfs.values()), normalize=True)
+dictionary.filter_extremes(no_below=200, no_above=0.5, keep_n=10000000000)
+dictionary[0]
+tokens = get_article_tokens(0)
+dictionary.doc2bow(tokens)
+tfidf = TfidfModel(dictionary=dictionary)
+x = tfidf[dictionary.doc2bow(tokens)]
+from gensim.matutils import sparse2full
+
+sparse2full(x, len(dictionary.dfs))
+sparse2full(x, len(dictionary.dfs)).shape

@@ -1,0 +1,1 @@
+!cat /kaggle/input/open-access-karl-fristons-papers-txt/*.txt > /kaggle/working/all.txt

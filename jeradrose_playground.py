@@ -1,0 +1,17 @@
+ls /kaggle/input
+import sqlite3
+con = sqlite3.connect('../input/database.sqlite')
+cursor = con.cursor()
+cursor.execute("SELECT * FROM StateNames LIMIT 10;")
+print(cursor.fetchall())
+list(map(lambda x: x[0], cursor.description))
+cursor = con.execute("SELECT Year, COUNT(*) FROM StateNames GROUP BY Year;")
+print(cursor.fetchall())
+print(cursor)
+print(cursor.fetchall())
+cursor = con.execute("SELECT Year, COUNT(*) FROM StateNames GROUP BY Year;")
+print(cursor.fetchall())
+cursor = con.execute("SELECT State, COUNT(*) FROM StateNames GROUP BY State;")
+print(cursor.fetchall())
+cursor = con.execute("SELECT Name, COUNT(*) FROM StateNames GROUP BY Name ORDER BY COUNT(*) DESC;")
+print(cursor.fetchall())

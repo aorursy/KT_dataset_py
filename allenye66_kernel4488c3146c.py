@@ -1,0 +1,250 @@
+import numpy as np 
+
+import pandas as pd 
+
+from sklearn import model_selection
+
+from sklearn.metrics import accuracy_score
+
+from collections import Counter
+
+import keras
+
+from keras.models import Sequential 
+
+from keras.layers import Activation, MaxPooling1D, Dropout, Flatten, Reshape, Dense, Conv1D, LSTM,SpatialDropout1D
+
+from keras.wrappers.scikit_learn import KerasClassifier
+
+from sklearn.model_selection import StratifiedKFold
+
+from sklearn.model_selection import cross_val_score
+
+import numpy as np
+
+import pandas as pd
+
+import seaborn as sns
+
+import os
+
+import matplotlib.pyplot as plt
+
+import tensorflow as tf
+
+from sklearn.metrics import precision_score, recall_score, accuracy_score, balanced_accuracy_score, f1_score
+
+from sklearn.model_selection import train_test_split
+
+from random import randrange
+
+from random import seed
+
+from random import random
+
+import pickle
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+json_file = open('/kaggle/input/boostedcnn-8c046e/boosted_lstm_0.json', 'r')
+
+loaded_model_json = json_file.read()
+
+json_file.close()
+
+
+
+loaded_model = tf.keras.models.model_from_json(loaded_model_json)
+
+loaded_model.load_weights("/kaggle/input/boostedcnn-8c046e/boosted_lstm_0.h5")
+files = dictionary = {'ADLOAD' : 162, 'AGENT' : 184, 'ALLAPLE_A' : 986, 'BHO' : 332, 'BIFROSE' : 156, 'CEEINJECT' : 873, 'CYCBOT_G' : 597, 'FAKEREAN' : 553,
+
+                  'HOTBAR' : 129, 'INJECTOR' : 158, 'ONLINEGAMES' : 210, 'RENOS' : 532, 'RIMECUD_A' : 153, 'SMALL' : 180, 
+
+                  'TOGA_RFN' : 406, 'VB' : 346, 'VBINJECT' : 937, 'VOBFUS' : 929 , 'VUNDO' : 762, 'WINWEBSEC' : 837, 'ZBOT' : 303}
+
+
+
+dataSelect = {'ADLOAD' : (0,130), 'AGENT' : (161, 310), 'ALLAPLE_A' : (345, 1036), 'BHO' : (1331, 1582), 'BIFROSE' : (1663, 1790), 'CEEINJECT' : (1819, 2430), 'CYCBOT_G' : (2692, 3140), 'FAKEREAN' : (3290, 3705),
+
+              'HOTBAR' : (3842, 3945), 'INJECTOR' : (3972, 4098), 'ONLINEGAMES' : (4129, 4297), 'RENOS' : (4339, 4738), 'RIMECUD_A' : (4871, 4993), 'SMALL' : (5024, 5168), 
+
+              'TOGA_RFN' : (5204, 5508), 'VB' : (5610, 5869), 'VBINJECT' : (5956, 6612), 'VOBFUS' : (6893, 7543) , 'VUNDO' : (7822, 8355), 'WINWEBSEC' : (8584, 9170), 'ZBOT' : (9421, 9648)}
+
+
+
+dataSelect2 = {'ADLOAD' : (0,161), 'AGENT' : (161, 345), 'ALLAPLE_A' : (345, 1331), 'BHO' : (1331, 1663), 'BIFROSE' : (1663, 1819), 'CEEINJECT' : (1819, 2692), 'CYCBOT_G' : (2692, 3290), 'FAKEREAN' : (3290, 3842),
+
+              'HOTBAR' : (3842, 3972), 'INJECTOR' : (3972, 4129), 'ONLINEGAMES' : (4129, 4339), 'RENOS' : (4339, 4871), 'RIMECUD_A' : (4871, 5024), 'SMALL' : (5024, 5204), 
+
+              'TOGA_RFN' : (5204, 5610), 'VB' : (5610, 5956), 'VBINJECT' : (5956, 6893), 'VOBFUS' : (6893, 7822) , 'VUNDO' : (7822, 8584), 'WINWEBSEC' : (8584, 9421), 'ZBOT' : (9421, 9724)}
+
+
+
+families = [ 'ADLOAD', 'AGENT' , 'ALLAPLE_A', 'BHO', 'BIFROSE', 'CEEINJECT', 'CYCBOT_G','FAKEREAN', 'HOTBAR', 'INJECTOR',
+
+            'ONLINEGAMES', 'RENOS', 'RIMECUD_A', 'SMALL', 'TOGA_RFN', 'VB', 'VBINJECT',
+
+            'VOBFUS', 'VUNDO', 'WINWEBSEC', 'ZBOT']
+df = pd.read_csv('/kaggle/input/final-opcodes/all_data.csv')
+
+print(df.shape)
+def predict(row, modelFile): #data is 2d np array
+
+    jsonFile = modelFile + '.json'
+
+    json_file = open(jsonFile, 'r')
+
+    loaded_model_json = json_file.read()
+
+    json_file.close()
+
+
+
+    loaded_model = tf.keras.models.model_from_json(loaded_model_json)
+
+    h5File = modelFile + '.h5'
+
+    loaded_model.load_weights(h5)
+
+    
+
+    y_pred = loaded_model.predict_classes(row.reshape(1, 1000))
+
+    print(y_pred[0])
+
+    return y_pred[0]
+def checkPred(array):
+
+    bestScore = -1
+
+    count = -1
+
+    best_model = -1
+
+    for i in range(21):
+
+        if array[i] > count:
+
+            count = array[i]
+
+            best_model = i
+
+#             bestScore = scores[i]
+
+#         elif array[i] == count and scores[i] > bestScore: --> USE IF CAN OBTAIN CONFIDENCE LEVEL
+
+#             best_model = i
+
+#             bestScore = scores[i]
+
+    return best_model
+#Getting X and Y Data
+
+X = df.iloc[:, 34:]
+
+Y = df.iloc[:, 1]
+
+
+
+from sklearn.preprocessing import LabelEncoder
+
+le = LabelEncoder()
+
+Y = le.fit_transform(Y)
+
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.2, random_state = 23)
+
+
+
+print(X_test.shape)
+
+X_train = tf.reshape(X_train, (X_train.shape[0], 1000, 1))
+
+X_test = tf.reshape(X_test, (X_test.shape[0], 1000, 1))
+
+
+
+for i in range(0,1):
+
+    file = "/kaggle/input/boostedcnn-8c046e/boosted_lstm_"
+
+    modelFile = file + str(i)
+
+    jsonFile = modelFile + '.json'
+
+    json_file = open(jsonFile, 'r')
+
+    loaded_model_json = json_file.read()
+
+    json_file.close()
+
+
+
+    loaded_model = tf.keras.models.model_from_json(loaded_model_json)
+
+    h5File = modelFile + '.h5'
+
+    loaded_model.load_weights(h5File)
+
+    
+
+    preds = loaded_model.predict_classes(X_train)
+
+    print(preds.shape)
+
+    
+
+    predFile = "/kaggle/working/y_pred" + str(i) + ".sav"
+
+    pickle.dump(preds, open(predFile, 'wb'))
+Y_pred = np.empty(0, dtype=np.int8)
+
+for i in range(7780):
+
+    predFile = "/kaggle/input/boostedcnn-8c046e/y_pred_boosted"
+
+    array = [0] * 21
+
+    for j in range (0,1):
+
+        predFile += str(j) + ".sav"
+
+        y_pred = pickle.load(open(predFile, 'rb'))
+
+        array[y_pred[i]] += 1
+
+    final_Pred = checkPred(array)
+
+    Y_pred = np.append(Y_pred, final_Pred)
+
+    print(families[final_Pred])
+
+    array = [0] * 21
+print(Y_pred.shape)
+
+predBoostFile = "/kaggle/working/y_pred_boosted0.sav"
+
+pickle.dump(Y_pred, open(predBoostFile, 'wb'))
+from sklearn.metrics import accuracy_score
+
+print("-------------------------")
+
+
+
+print(accuracy_score(y_train, Y_pred))
+error = [np.empty((0,0), dtype = np.int8)] * 21
+
+for i in range(7284):
+
+    if(y_train[i] != Y_pred[i]):
+
+        error = np.append(error, i)
+errorFile = "/kaggle/working/errors0.sav"
+
+pickle.dump(error, open(errorFile, 'wb'))

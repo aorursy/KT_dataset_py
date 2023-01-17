@@ -1,0 +1,140 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+import pandas as pd
+
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import accuracy_score,confusion_matrix
+train = pd.read_csv("../input/fake-news/train.csv")
+train.head()
+train.shape
+train.isnull().sum()#欠損値の確認
+train = train.dropna()
+train.isnull().sum()
+x = train.drop('label', axis = 1)#Titleから真偽を判別しているので独立変数
+
+y = train['label']#従属変数
+from tensorflow.keras import Sequential
+
+from tensorflow.keras.layers import Flatten,Dense,Embedding,LSTM,Dropout
+
+from tensorflow.keras.preprocessing.text import one_hot
+
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+messages = x.copy()
+
+messages.reset_index(inplace=True)#連番を振りなおす
+import nltk
+
+import re
+
+from nltk.corpus import stopwords
+
+from nltk.stem.porter import PorterStemmer
+nltk.download("stopwords")
+ps = PorterStemmer()
+
+corpus = []
+
+for i in range(0,len(messages)):
+
+    result = re.sub('[^a-zA-Z]',' ',messages['title'][i])  
+
+    result = result.lower()
+
+    result = result.split()
+
+    
+
+    result = [ps.stem(word) for word in result if not word in stopwords.words("english")]
+
+    result = " ".join(result)
+
+    corpus.append(result)
+corpus
+voc_size = 5000
+
+onehot_repr = [one_hot(words,voc_size) for words in corpus]
+
+onehot_repr
+sent_length = 20
+
+embeded_docs = pad_sequences(onehot_repr,padding= 'pre',maxlen = sent_length)
+
+embeded_docs
+embeded_docs[0]
+embedding_vector_features = 40
+
+model = Sequential()
+
+model.add(Embedding(voc_size,embedding_vector_features,input_length = sent_length))
+
+model.add(Dropout(0.3))
+
+model.add(LSTM(100))
+
+model.add(Dropout(0.3))
+
+model.add(Dense(1,activation='sigmoid'))
+
+model.compile(optimizer = 'adam',loss ='binary_crossentropy',metrics=['accuracy'])
+x_final = np.array(embeded_docs)
+
+y_final = np.array(y)
+
+x_train,x_test,y_train,y_test = train_test_split(x_final,y_final,test_size=0.33,random_state=42)
+model.summary()
+history = model.fit(x_train,y_train,validation_data =(x_test,y_test),batch_size=64,epochs=10)
+import matplotlib.pyplot as plt
+
+def plot_learning_curve(history,epochs):
+
+    #Accuracy
+
+    epoch_range = range(1,epochs+1)
+
+    plt.plot(epoch_range,history.history['accuracy'])
+
+    plt.plot(epoch_range,history.history["val_accuracy"])
+
+    plt.xlabel("Epochs")
+
+    plt.ylabel("Accuracy")
+
+    plt.legend(["Train","Val"],loc ="upper left")
+
+    plt.show()
+plot_learning_curve(history,10)

@@ -1,0 +1,237 @@
+# SETUP. You don't need to worry for now about what this code does or how it works. If you're ever curious about the 
+# code behind these exercises, it's available under an open source license here: https://github.com/Kaggle/learntools/
+import sys; sys.path.insert(0, '../input/learntools/pseudo_learntools')
+from learntools.python import binder; binder.bind(globals())
+from learntools.python.ex7 import *
+print('Setup complete.')
+# Import the jimmy_slots submodule
+from learntools.python import jimmy_slots
+# Call the get_graph() function to get Jimmy's graph
+graph = jimmy_slots.get_graph()
+graph
+def prettify_graph(graph):
+    """Modify the given graph according to Jimmy's requests: add a title, make the y-axis
+    start at 0, label the y-axis. (And, if you're feeling ambitious, format the tick marks
+    as dollar amounts using the "$" symbol.)
+    """
+    graph.set_title("Results of 500 slot machine pulls")
+    graph.set_ylim(bottom = 0)
+    graph.set_ylabel("Balance")
+
+    ticks = graph.get_yticks()
+    new_labels = ['${}'.format(int(amt)) for amt in ticks]
+    # Set the new labels
+    graph.set_yticklabels(new_labels)
+    # Complete steps 2 and 3 here
+
+graph = jimmy_slots.get_graph()
+prettify_graph(graph)
+graph
+#q1.solution()
+def best_items(racers):
+    """Given a list of racer dictionaries, return a dictionary mapping items to the number
+    of times those items were picked up by racers who finished in first place.
+    """
+    winner_item_counts = {}
+    for i in range(len(racers)):
+        # The i'th racer dictionary
+        racer = racers[i]
+        # We're only interested in racers who finished in first
+        if racer['finish'] == 1:
+            for i in racer['items']:
+                # Add one to the count for this item (adding it to the dict if necessary)
+                if i not in winner_item_counts:
+                    winner_item_counts[i] = 0
+                winner_item_counts[i] += 1
+
+        # Data quality issues :/ Print a warning about racers with no name set. We'll take care of it later.
+        if racer['name'] is None:
+            print("WARNING: Encountered racer with unknown name on iteration {}/{} (racer = {})".format(
+                i+1, len(racers), racer['name'])
+                 )
+    return winner_item_counts
+sample = [
+    {'name': 'Peach', 'items': ['green shell', 'banana', 'green shell',], 'finish': 3},
+    {'name': 'Bowser', 'items': ['green shell',], 'finish': 1},
+    {'name': None, 'items': ['mushroom',], 'finish': 2},
+    {'name': 'Toad', 'items': ['green shell', 'mushroom'], 'finish': 1},
+]
+best_items(sample)
+# Import luigi's full dataset of race data
+from learntools.python.luigi_analysis import full_dataset
+
+# Fix me!
+def best_items(racers):
+    winner_item_counts = {}
+    for i in range(len(racers)):
+        # The i'th racer dictionary
+        racer = racers[i]
+        # We're only interested in racers who finished in first
+        if racer['finish'] == 1:
+            for j in racer['items']:
+                # Add one to the count for this item (adding it to the dict if necessary)
+                if j not in winner_item_counts:
+                    winner_item_counts[j] = 0
+                winner_item_counts[j] += 1
+        #print(i)
+        # Data quality issues :/ Print a warning about racers with no name set. We'll take care of it later.
+        if racer['name'] is None:
+            print("WARNING: Encountered racer with unknown name on iteration {}/{} (racer = {})".format(
+                i+1, len(racers), racer['name'])
+                 )
+    return winner_item_counts
+
+# Try analyzing the imported full dataset
+best_items(full_dataset)
+q2.hint()
+q2.solution()
+def valuehand(hand):
+    tmp_value_hand_1 = 0
+    aces_hand_1 = 0
+    for str in hand:
+        if str in ['Q','K','J']:
+            tmp_value_hand_1 += 10
+        elif str == 'A':
+            aces_hand_1 += 1
+        else:
+            tmp_value_hand_1 += int(str)
+    #print(tmp_value_hand_1, aces_hand_1)
+    tmp_value_hand_1 += 1*aces_hand_1
+    
+    while aces_hand_1 > 0 and tmp_value_hand_1+10 <= 21:
+        tmp_value_hand_1 += 10
+        aces_hand_1 += -1
+    return tmp_value_hand_1
+    
+
+
+def blackjack_hand_greater_than(hand_1, hand_2):
+    """
+    Return True if hand_1 beats hand_2, and False otherwise.
+    
+    In order for hand_1 to beat hand_2 the following must be true:
+    - The total of hand_1 must not exceed 21
+    - The total of hand_1 must exceed the total of hand_2 OR hand_2's total must exceed 21
+    
+    Hands are represented as a list of cards. Each card is represented by a string.
+    
+    When adding up a hand's total, cards with numbers count for that many points. Face
+    cards ('J', 'Q', and 'K') are worth 10 points. 'A' can count for 1 or 11.
+    
+    When determining a hand's total, you should try to count aces in the way that 
+    maximizes the hand's total without going over 21. e.g. the total of ['A', 'A', '9'] is 21,
+    the total of ['A', 'A', '9', '3'] is 14.
+    
+    Examples:
+    >>> blackjack_hand_greater_than(['K'], ['3', '4'])
+    True
+    >>> blackjack_hand_greater_than(['K'], ['10'])
+    False
+    >>> blackjack_hand_greater_than(['K', 'K', '2'], ['3'])
+    False
+    """
+    value_hand_1 = valuehand(hand_1)
+    value_hand_2 = valuehand(hand_2)    
+    
+    return (value_hand_1 <= 21) and (value_hand_1 > value_hand_2 or value_hand_2 > 21)
+
+q3.check()
+q3.hint()
+q3.solution()
+from learntools.python import roulette
+import random
+
+
+
+def random_and_superstitious(wheel):
+    """Interact with the given wheel over 100 spins with the following strategy:
+    - if the wheel lands on 4, don't bet on the next spin
+    - otherwise, bet on a random number on the wheel (from 0 to 10)
+    """
+    last_number = 0
+    while wheel.num_remaining_spins() > 0:
+        if last_number == 4:
+            # Unlucky! Don't bet anything.
+            guess = None
+        else:
+            guess = random.randint(0, 10)
+        last_number = wheel.spin(number_to_bet_on=guess)
+
+roulette.evaluate_roulette_strategy(random_and_superstitious)
+import random
+def conditional_roulette_probs(history):
+    """
+
+    Example: 
+    conditional_roulette_probs([1, 3, 1, 5, 1])
+    > {1: {3: 0.5, 5: 0.5}, 
+       3: {1: 1.0},
+       5: {1: 1.0}
+      }
+    """
+    counts = {}
+    for i in range(1, len(history)):
+        roll, prev = history[i], history[i-1]
+        if prev not in counts:
+            counts[prev] = {}
+        if roll not in counts[prev]:
+            counts[prev][roll] = 0
+        counts[prev][roll] += 1
+
+    # We have the counts, but still need to turn them into probabilities
+    probs = {}
+    for prev, nexts in counts.items():
+        # The total spins that landed on prev (not counting the very last spin)
+        total = sum(nexts.values()) #sum up all the next values
+        #calculate sub probabilities
+        sub_probs = {next_spin: next_count/total  
+                for next_spin, next_count in nexts.items()}
+        probs[prev] = sub_probs
+    return probs
+
+def my_agent(wheel):
+    prob_treshold = 0.5 #minimum probability to make a bet
+    break_statistic = 10 # number of runs before calculating probability
+    
+    history_numbers = []
+    last_number = 0
+    #training the history
+    while wheel.num_remaining_spins() > 0:
+        
+        guess = None #if random.random() <= 0.66 else random.randint(0, 10)
+        
+        last_number = wheel.spin(number_to_bet_on=guess)
+        #print(last_number)
+        history_numbers.append(last_number)
+        if wheel.num_remaining_spins() == break_statistic:
+            break
+    
+    #print(history_numbers)
+    
+    
+    #print(prob_table)
+    
+    
+    while wheel.num_remaining_spins() >= break_statistic:
+        prob_table = conditional_roulette_probs(history_numbers)
+        if prob_table.get(last_number):
+            maximum = max(prob_table[last_number], key=prob_table[last_number].get)
+            
+            
+            number, prob_number = maximum, prob_table[last_number][maximum]
+        
+            #print(number, prob_number)
+
+            if prob_number > prob_treshold:
+            # Don't bet anything.
+                guess = None
+            else:
+                guess = number
+        else:
+            guess = None if random.random() <= 0.66 else random.randint(0, 10)
+        last_number = wheel.spin(number_to_bet_on=guess)
+        history_numbers.append(last_number)
+        #print(last_number)
+        
+        
+roulette.evaluate_roulette_strategy(my_agent)

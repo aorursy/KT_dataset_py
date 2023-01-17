@@ -1,0 +1,100 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+! ls ../input/hse-pml-2
+exc = pd.read_excel('../input/hse-pml-2/column_names.xlsx')
+train = pd.read_csv('../input/hse-pml-2/train_resort.csv')
+test = pd.read_csv('../input/hse-pml-2/test_resort.csv')
+exc
+print(len(train.columns.tolist()))
+print(len(test.columns.tolist()))
+print(set(train.columns.tolist()).symmetric_difference(test.columns.tolist()))
+target = 'amount_spent_per_room_night_scaled'
+id_cols = ['memberid', 'reservation_id', 'resort_id']
+cat_cols = [
+    x for x in exc['Variable']
+    if ((x.find('code') >= 0) or (x.find('id') >= 0))
+    and (x not in id_cols)
+] + ['member_age_buckets']
+date_cols = [x for x in exc['Variable'] if x.find('date') >= 0]
+num_cols = list(set(exc['Variable'].values) - set(id_cols + cat_cols + date_cols))
+num_cols = list(set(num_cols) - {target})
+assert len(id_cols + cat_cols + num_cols + date_cols) == exc['Variable'].shape[0] - 1
+for c in id_cols:
+    print(c)
+    u_train = list(train[c].unique())
+    u_test = list(test[c].unique())
+    print(f'Train unique values: {len(u_train)}')
+    print(f'Test unique values: {len(u_test)}')
+    print(f'Intersection: {len(set(u_train).intersection(u_test)) / len(set(u_train).union(u_test))}')
+for c in cat_cols:
+    plt.figure(figsize=(14, 4))
+    u_train = list(train[c].unique())
+    u_test = list(test[c].unique())
+    print(f'Train unique values: {len(u_train)}')
+    print(f'Test unique values: {len(u_test)}')
+    print(f'Intersection: {len(set(u_train).intersection(u_test)) / len(set(u_train).union(u_test))}')
+    print(set(u_train).union(u_test))
+    plt.hist(train[c], label='Train ', density=True, alpha=0.7, color='m')
+    plt.hist(test[c], label='Test ', density=True, alpha=0.7, color='y')
+    plt.title(c)
+    plt.legend()
+    plt.show()
+for c in date_cols:
+    print(train[c][:10])
+for c in date_cols:
+    train[c] = pd.to_datetime(train[c], format='%Y-%m-%d')
+    test[c] = pd.to_datetime(test[c], format='%Y-%m-%d')
+    plt.hist(train[c], label='Train ', density=True, alpha=0.7, color='m')
+    plt.hist(test[c], label='Test ', density=True, alpha=0.7, color='y')
+    plt.title(c)
+    plt.legend()
+    plt.show()
+print(f"Заехали после выезда: {(train['checkin_date'] < train['checkout_date']).mean() * 100}%")
+print(f"Забронировали после выезда: {(train['booking_date'] < train['checkout_date']).mean() * 100}%")
+print(f"Забронировали после заезда: {(train['checkin_date'] < train['checkout_date']).mean() * 100}%")
+print(f"Заехали после выезда: {(test['checkin_date'] < test['checkout_date']).mean() * 100}%")
+print(f"Забронировали после выезда: {(test['booking_date'] < test['checkout_date']).mean() * 100}%")
+print(f"Забронировали после заезда: {(test['checkin_date'] < test['checkout_date']).mean() * 100}%")
+for c in num_cols:
+    plt.hist(train[c], label='Train ', density=True, alpha=0.7, color='m')
+    plt.hist(test[c], label='Test ', density=True, alpha=0.7, color='y')
+    plt.title(c)
+    plt.legend()
+    plt.show()
+for c in num_cols:
+    plt.figure(figsize=(14, 4))
+    u_train = list(train[c].unique())
+    u_test = list(test[c].unique())
+    print(f'Train unique values: {len(u_train)}')
+    print(f'Test unique values: {len(u_test)}')
+    print(f'Intersection: {len(set(u_train).intersection(u_test)) / len(set(u_train).union(u_test))}')
+    print(set(u_train).union(u_test))
+    plt.hist(train[c], label='Train ', density=True, alpha=0.7, color='m', bins=50)
+    plt.hist(test[c], label='Test ', density=True, alpha=0.7, color='y', bins=50)
+    plt.title(c)
+    plt.legend()
+    plt.show()
+print(f"Взрослых больше чем всего гостей: {(train['numberofadults'] > train['total_pax']).mean()}")
+print(f"Детей больше чем всего гостей: {(train['numberofchildren'] > train['total_pax']).mean()}")
+print(f"Детей больше чем взрослых: {(train['numberofchildren'] > train['numberofadults']).mean()}")
+print(f"Детей + всего = взрослых: {((train['numberofchildren'] + train['total_pax']) == train['numberofadults']).mean()}")
+train[target].describe()
+plt.figure(figsize=(14, 4))
+plt.hist(train[target], density=True, bins=120)
+plt.title(target)
+plt.show()
+((train[target] - train[target].mean()).abs() < 3 * train[target].std()).mean()
+plt.figure(figsize=(14, 4))
+plt.hist(np.log(train[target]), density=True, bins=120)
+plt.title(target)
+plt.show()
+x = np.log(train[target])
+np.mean((np.abs(x - np.mean(x)) < 3 * np.std(x)))
+plt.figure(figsize=(14, 4))
+plt.hist(np.power(train[target], 2), density=True, bins=120)
+plt.title(target)
+plt.show()
+x = np.power(train[target], 2)
+np.mean((np.abs(x - np.mean(x)) < 3 * np.std(x)))
+

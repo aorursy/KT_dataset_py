@@ -1,0 +1,53 @@
+# Code you have previously used to load data
+
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.tree import DecisionTreeRegressor
+
+
+
+
+
+# Path of the file to read
+
+iowa_file_path = '../input/home-data-for-ml-course/train.csv'
+
+
+
+home_data = pd.read_csv(iowa_file_path)
+
+# Create target object and call it y
+
+y = home_data.SalePrice
+
+# Create X
+
+features = ['LotArea', 'YearBuilt', '1stFlrSF', '2ndFlrSF', 'FullBath', 'BedroomAbvGr', 'TotRmsAbvGrd']
+
+X = home_data[features]
+
+
+
+# Split into validation and training data
+
+train_X, val_X, train_y, val_y = train_test_split(X, y, random_state=1)
+from sklearn.ensemble import RandomForestRegressor
+
+from sklearn.metrics import mean_absolute_error
+
+X.describe
+
+model = RandomForestRegressor()
+
+model.fit(train_X, train_y)
+print("Making predictions for the value of the following houses:")
+
+print(val_X)
+
+print("Predictions:")
+
+print(model.predict(val_X))
+print(val_y)
+mean_absolute_error(val_y, model.predict(val_X))

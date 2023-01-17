@@ -1,0 +1,30 @@
+import pandas as pd
+train=pd.read_csv("../input/train.csv")
+train.head()
+train.info()
+train.shape
+train["Age"].mean()
+train.drop("Cabin", axis=1,inplace=True)
+train.describe()
+train.mean()
+train.fillna(round(train.mean(),2), inplace=True)
+train.head(10)
+train.dropna(axis=0,inplace=True) 
+from sklearn.cluster import KMeans
+
+
+train_numeric=train.select_dtypes(exclude=['object'])
+train_numeric.drop("Survived",axis=1,inplace=True)
+kmeans = KMeans(n_clusters=2)
+kmeans.fit(train_numeric)
+train["cluster"]=kmeans.predict(train_numeric)
+train.head()
+test=pd.read_csv("../input/test.csv")
+test.head()
+test.info()
+test.drop("Cabin", axis=1,inplace=True)
+test.fillna(round(test.mean(),2), inplace=True)
+test.info()
+test_numeric=test.select_dtypes(exclude=['object'])
+test_numeric.info()
+test["cluster"]=kmeans.predict(test_numeric)

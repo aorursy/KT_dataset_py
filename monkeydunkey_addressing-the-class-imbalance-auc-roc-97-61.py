@@ -1,0 +1,1 @@
+creditCardData = pd.read_csv("../input/creditcard.csv")

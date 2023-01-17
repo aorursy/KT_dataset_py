@@ -1,0 +1,41 @@
+import pandas as pd
+pd.set_option("display.max_rows", 5)
+reviews = pd.read_csv("../input/wine-reviews/winemag-data-130k-v2.csv", index_col=0)
+
+from learntools.core import binder; binder.bind(globals())
+from learntools.pandas.summary_functions_and_maps import *
+print("Setup complete.")
+
+reviews.head()
+median_points = reviews.median()['points']
+
+median_points
+#q1.hint()
+#q1.solution()
+countries = reviews['country'].unique()
+countries
+#q2.hint()
+#q2.solution()
+reviews_per_country = reviews['country'].value_counts()
+reviews_per_country
+
+#q3.hint()
+#q3.solution()
+centered_price = reviews['price'].mean()
+centered_price
+#q4.hint()
+#q4.solution()
+bargain_wine = [reviews['points']/reviews['price']]
+bargain_wine
+#q5.hint()
+#q5.solution()
+descriptor_counts = ____
+
+q6.check()
+#q6.hint()
+#q6.solution()
+star_ratings = ____
+
+q7.check()
+#q7.hint()
+#q7.solution()

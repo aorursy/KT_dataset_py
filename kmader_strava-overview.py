@@ -1,0 +1,36 @@
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+from glob import glob
+import os
+all_df = pd.DataFrame(dict(path = glob(os.path.join('..', 'input', 'activ*', '*'))))
+all_df.sample(3)
+all_df['file_id'] = all_df['path'].map(lambda x: os.path.splitext(os.path.basename(x))[0])
+all_df['date'] = all_df['file_id'].map(lambda x: x.split('-')[0])
+all_df['year'] = all_df['date'].map(lambda x: int(x[0:4]))
+all_df['date'] = pd.to_datetime(all_df['date'], format='%Y%m%d')
+all_df['activity'] = all_df['file_id'].map(lambda x: x.split('-')[2])
+all_df.sample(3)
+all_df['activity'].hist(figsize = (12, 4))
+all_df['date'].hist(figsize = (12, 4))
+from xml.etree import ElementTree as ET
+_, t_row = next(all_df.sample(1).iterrows())
+print(t_row)
+cur_run = ET.parse(t_row['path'])
+cur_run_df = pd.DataFrame([c_pt.attrib
+    for cur_trk in cur_run.findall("{http://www.topografix.com/GPX/1/1}trk")
+    for cur_seg in cur_trk.findall('{http://www.topografix.com/GPX/1/1}trkseg')
+    for c_pt in cur_seg.findall('{http://www.topografix.com/GPX/1/1}trkpt')])
+cur_run_df['lat'] = cur_run_df['lat'].map(float)
+cur_run_df['lon'] = cur_run_df['lon'].map(float)
+cur_run_df.sample(5)            
+cur_run_df.plot.scatter('lat', 'lon')
+from tqdm import tqdm
+all_pts = pd.DataFrame([dict(**c_pt.attrib, **c_row)
+    for _, c_row in tqdm(list(all_df.iterrows()))
+    for cur_trk in ET.parse(c_row['path']).findall("{http://www.topografix.com/GPX/1/1}trk")
+    for cur_seg in cur_trk.findall('{http://www.topografix.com/GPX/1/1}trkseg')
+    for c_pt in cur_seg.findall('{http://www.topografix.com/GPX/1/1}trkpt')])
+all_pts.sample(5)
+all_pts['lat'] = all_pts['lat'].map(float)
+all_pts['lon'] = all_pts['lon'].map(float)
+# all_pts.to_csv('all_data_points.csv')

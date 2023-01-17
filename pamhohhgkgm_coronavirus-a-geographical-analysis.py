@@ -1,0 +1,247 @@
+
+
+# import the necessary libraries
+
+import numpy as np 
+
+import pandas as pd 
+
+
+
+# Visualisation libraries
+
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+import seaborn as sns
+
+sns.set()
+
+from plotly.offline import init_notebook_mode, iplot 
+
+import plotly.graph_objs as go
+
+import plotly.offline as py
+
+import pycountry
+
+py.init_notebook_mode(connected=True)
+
+import folium 
+
+from folium import plugins
+
+
+
+# Graphics in retina format 
+
+%config InlineBackend.figure_format = 'retina' 
+
+
+
+# Increase the default plot size and set the color scheme
+
+plt.rcParams['figure.figsize'] = 8, 5
+
+#plt.rcParams['image.cmap'] = 'viridis'
+
+
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# Disable warnings 
+
+import warnings
+
+warnings.filterwarnings('ignore')
+#from IPython.display import IFrame
+
+#IFrame('https://www.myheatmap.com/maps/PPk1_rfT1jQ%3D', width=800, height=600)
+# Reading the dataset
+
+corona_virus=("../input/novel-corona-virus-2019-dataset/2019_nCoV_data.csv")
+
+data= pd.read_csv(corona_virus)
+
+data.head()
+# Let's look at the various columns
+
+data.info()
+# Convert Last Update column to datetime64 format
+
+
+
+data['Date'] = data['Date'].apply(pd.to_datetime)
+
+data.drop(['Sno'],axis=1,inplace=True)
+
+
+
+#Set Date column as the index column.
+
+#data.set_index('Last Update', inplace=True)
+
+data.head()
+# Countries affected
+
+
+
+countries = data['Country'].unique().tolist()
+
+print(countries)
+
+
+
+print("\nTotal countries affected by virus: ",len(countries))
+#Combining China and Mainland China cases
+
+
+
+data['Country'].replace({'Mainland China':'China'},inplace=True)
+
+countries = data['Country'].unique().tolist()
+
+print(countries)
+
+print("\nTotal countries affected by virus: ",len(countries))
+d = data['Date'][-1:].astype('str')
+
+year = int(d.values[0].split('-')[0])
+
+month = int(d.values[0].split('-')[1])
+
+day = int(d.values[0].split('-')[2].split()[0])
+
+
+
+from datetime import date
+
+data_latest = data[data['Date'] > pd.Timestamp(date(year,month,day))]
+
+data_latest.head()
+# Creating a dataframe with total no of confirmed cases for every country
+
+Number_of_countries = len(data_latest['Country'].value_counts())
+
+
+
+
+
+cases = pd.DataFrame(data_latest.groupby('Country')['Confirmed'].sum())
+
+cases['Country'] = cases.index
+
+cases.index=np.arange(1,Number_of_countries+1)
+
+
+
+global_cases = cases[['Country','Confirmed']]
+
+#global_cases.sort_values(by=['Confirmed'],ascending=False)
+
+global_cases
+# Importing the world_coordinates dataset
+
+world_coordinates = pd.read_csv('../input/world-coordinates/world_coordinates.csv')
+
+
+
+# Merging the coordinates dataframe with original dataframe
+
+world_data = pd.merge(world_coordinates,global_cases,on='Country')
+
+world_data.head()
+
+
+# create map and display it
+
+world_map = folium.Map(location=[10, -20], zoom_start=2.3,tiles='Stamen Toner')
+
+
+
+for lat, lon, value, name in zip(world_data['latitude'], world_data['longitude'], world_data['Confirmed'], world_data['Country']):
+
+    folium.CircleMarker([lat, lon],
+
+                        radius=10,
+
+                        popup = ('<strong>Country</strong>: ' + str(name).capitalize() + '<br>'
+
+                                '<strong>Confirmed Cases</strong>: ' + str(value) + '<br>'),
+
+                        color='red',
+
+                        
+
+                        fill_color='red',
+
+                        fill_opacity=0.7 ).add_to(world_map)
+
+world_map
+
+# A look at the different cases - confirmed, death and recovered
+
+print('Globally Confirmed Cases: ',data_latest['Confirmed'].sum())
+
+print('Global Deaths: ',data_latest['Deaths'].sum())
+
+print('Globally Recovered Cases: ',data_latest['Recovered'].sum())
+# Let's look the various Provinces/States affected
+
+
+
+data_latest.groupby(['Country','Province/State']).sum()
+# Provinces where deaths have taken place
+
+data_latest.groupby('Country')['Deaths'].sum().sort_values(ascending=False)
+
+
+# Lets also look at the Recovered stats
+
+data_latest.groupby('Country')['Recovered'].sum().sort_values(ascending=False)[:5]
+#Mainland China
+
+China = data_latest[data_latest['Country']=='China']
+
+China
+
+f, ax = plt.subplots(figsize=(12, 8))
+
+
+
+sns.set_color_codes("pastel")
+
+sns.barplot(x="Confirmed", y="Province/State", data=China[1:],
+
+            label="Confirmed", color="r")
+
+
+
+sns.set_color_codes("muted")
+
+sns.barplot(x="Recovered", y="Province/State", data=China[1:],
+
+            label="Recovered", color="g")
+
+
+
+# Add a legend and informative axis label
+
+ax.legend(ncol=2, loc="lower right", frameon=True)
+
+ax.set(xlim=(0, 400), ylabel="",
+
+       xlabel="Stats")
+
+sns.despine(left=True, bottom=True)

@@ -1,0 +1,40 @@
+import pandas as pd
+pd.set_option('max_rows', 5)
+import numpy as np
+from learntools.advanced_pandas.summary_functions_maps import *
+
+reviews = pd.read_csv("../input/wine-reviews/winemag-data-130k-v2.csv", index_col=0)
+check_q1(pd.DataFrame())
+reviews.head()
+reviews.points.median()
+print(check_q1(reviews.points.median()))
+print('-------')
+print(answer_q1())
+
+reviews.country.unique()
+print(check_q2(reviews.country.unique()))
+print('-------')
+print(answer_q2())
+reviews.country.value_counts()
+print(check_q3(reviews.country.value_counts()))
+print('-------')
+print(answer_q3())
+median_price = reviews.price.median()
+reviews.price.map(lambda v: v - median_price)
+print(check_q4(reviews.price.map(lambda v: v - median_price)))
+print('-------')
+print(answer_q4())
+reviews.loc[(reviews.points / reviews.price).idxmax()].title
+print(check_q6(reviews.loc[(reviews.points / reviews.price).idxmax()].title))
+print('-------')
+print(answer_q6())
+tropical_wine = reviews.description.map(lambda r: "tropical" in r).value_counts()
+fruity_wine = reviews.description.map(lambda r: "fruity" in r).value_counts()
+pd.Series([tropical_wine[True], fruity_wine[True]], index=['tropical', 'fruity'])
+print(check_q7(pd.Series([tropical_wine[True], fruity_wine[True]], index=['tropical', 'fruity'])))
+print(answer_q7())
+ans = reviews.loc[(reviews.country.notnull()) & (reviews.variety.notnull())]
+ans = ans.apply(lambda srs: srs.country + " - " + srs.variety, axis='columns')
+ans.value_counts()
+print(check_q8(ans.value_counts()))
+print(answer_q8())

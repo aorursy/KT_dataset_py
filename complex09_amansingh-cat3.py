@@ -1,0 +1,67 @@
+
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import seaborn as sns
+from matplotlib import pyplot as plt
+
+
+from sklearn.metrics import accuracy_score,f1_score, confusion_matrix
+%matplotlib inline
+
+
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+
+df=pd.read_csv("/kaggle/input/loan-data-set/loan_data_set.csv")
+df
+df.describe(include = 'all')
+df.mean()
+df.median()
+df.mode()
+df1 = df._get_numeric_data()
+df1
+categ = list(set(df.columns) - set(df._get_numeric_data().columns))
+categ
+df.shape
+df.info()
+df.isna().sum()
+res = df.groupby(['Gender', 'Education']).size().unstack()
+res.plot(kind='bar', figsize=(15,10))
+plt.show()
+numer = ["ApplicantIncome", "CoapplicantIncome", "LoanAmount", "Loan_Amount_Term","Credit_History"]
+df[numer].hist(figsize=(12,10), bins=20)
+plt.suptitle("Histograms ")
+plt.show()
+fig,ax=plt.subplots(figsize=(4,5))
+sns.countplot(x = "Education", data=df, order = df["Education"].value_counts().index)
+plt.show()
+fig,ax=plt.subplots(figsize=(4,5))
+sns.countplot(x = "Gender", data=df, order = df["Gender"].value_counts().index)
+plt.show()
+df.corr()
+fig,ax=plt.subplots(figsize=(15,8))
+sns.heatmap(data=df.corr().round(2),annot=True,linewidths=0.5,cmap="Blues")
+plt.show()
+comparison_column = np.where(df["ApplicantIncome"] == df["CoapplicantIncome"], True, False)
+df["new comp"] = comparison_column
+df
+comparison_column = np.where(df["Married"] == df["Self_Employed"], True, False)
+df["new comp"] = comparison_column
+df
+sns.factorplot('Dependents',kind='count',data=df,hue='Loan_Status')
+print(pd.crosstab(df["Married"],df["Loan_Status"]))
+Married=pd.crosstab(df["Married"],df["Loan_Status"])
+Married.div(Married.sum(1).astype(float),axis=0).plot(kind="bar",stacked=True,figsize=(5,5))
+plt.xlabel("Married")
+plt.ylabel("Percentage")
+plt.show()
+sns.relplot(x="ApplicantIncome", y="LoanAmount", data=df, col="Gender",color="Green",alpha=0.4)
+plt.show()
+ggs=sns.relplot(x="Loan_Amount_Term", y="LoanAmount", data=df,kind="line",hue="Education",ci=None)
+ggs.fig.set_size_inches(15,7)
+plt.show()

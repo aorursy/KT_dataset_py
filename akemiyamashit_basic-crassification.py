@@ -1,0 +1,210 @@
+import warnings
+
+warnings.filterwarnings('ignore')
+import pandas as pd
+
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+
+
+%matplotlib inline
+df = pd.read_csv('../input/heart.csv')
+
+df.head(3)
+print('Number of rows in the dataset: ',df.shape[0])
+
+print('Number of columns in the dataset: ',df.shape[1])
+df.isnull().sum()
+df.describe()
+male =len(df[df['sex'] == 1])
+
+female = len(df[df['sex']== 0])
+
+
+
+plt.figure(figsize=(8,6))
+
+
+
+# Data to plot
+
+labels = 'Male','Female'
+
+sizes = [male,female]
+
+colors = ['skyblue', 'yellowgreen']
+
+explode = (0, 0)  # explode 1st slice
+
+ 
+
+# Plot
+
+plt.pie(sizes, explode=explode, labels=labels, colors=colors,
+
+autopct='%1.1f%%', shadow=True, startangle=90)
+
+ 
+
+plt.axis('equal')
+
+plt.show()
+plt.figure(figsize=(8,6))
+
+
+
+# Data to plot
+
+labels = 'fasting blood sugar < 110 mg/dl','fasting blood sugar > 110 mg/dl'
+
+sizes = [len(df[df['fbs'] == 0]),len(df[df['cp'] == 1])]
+
+colors = ['skyblue', 'yellowgreen','orange','gold']
+
+explode = (0.1, 0)  # explode 1st slice
+
+ 
+
+# Plot
+
+plt.pie(sizes, explode=explode, labels=labels, colors=colors,
+
+autopct='%1.1f%%', shadow=True, startangle=180)
+
+ 
+
+plt.axis('equal')
+
+plt.show()
+plt.figure(figsize=(8,6))
+
+
+
+# Data to plot
+
+labels = 'No','Yes'
+
+sizes = [len(df[df['exang'] == 0]),len(df[df['exang'] == 1])]
+
+colors = ['skyblue', 'yellowgreen']
+
+explode = (0.1, 0)  # explode 1st slice
+
+ 
+
+# Plot
+
+plt.pie(sizes, explode=explode, labels=labels, colors=colors,
+
+autopct='%1.1f%%', shadow=True, startangle=90)
+
+ 
+
+plt.axis('equal')
+
+plt.show()
+sns.set_style('whitegrid')
+plt.figure(figsize=(14,8))
+
+sns.heatmap(df.corr(), annot = True, cmap='coolwarm',linewidths=.1)
+
+plt.show()
+sns.distplot(df['thalach'],kde=False,bins=30)
+sns.distplot(df['chol'],kde=False,bins=30)
+
+plt.show()
+sns.distplot(df['trestbps'],kde=False,bins=30,color='blue')
+
+plt.show()
+plt.figure(figsize=(15,6))
+
+sns.countplot(x='age',data = df, hue = 'target',palette='GnBu')
+
+plt.show()
+plt.figure(figsize=(8,6))
+
+sns.scatterplot(x='chol',y='thalach',data=df,hue='target')
+
+plt.show()
+plt.figure(figsize=(8,6))
+
+sns.scatterplot(x='trestbps',y='thalach',data=df,hue='target')
+
+plt.show()
+X= df.drop('target',axis=1)
+
+y=df['target']
+from sklearn.model_selection import train_test_split
+
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=.3,random_state=42)
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+
+
+
+X_train_scaled = scaler.fit_transform(X_train)
+
+X_train = pd.DataFrame(X_train_scaled)
+
+
+
+X_test_scaled = scaler.fit_transform(X_test)
+
+X_test = pd.DataFrame(X_test_scaled)
+from sklearn.neighbors import KNeighborsClassifier
+
+from sklearn.model_selection import GridSearchCV
+
+knn =KNeighborsClassifier()
+
+params = {'n_neighbors':[i for i in range(1,33,2)]}
+model = GridSearchCV(knn,params,cv=10)
+model.fit(X_train,y_train)
+
+model.best_params_           #print's parameters best values
+predict = model.predict(X_test)
+from sklearn.metrics import accuracy_score,confusion_matrix
+
+print('Accuracy Score: ',accuracy_score(y_test,predict))
+
+print('Using k-NN we get an accuracy score of: ',
+
+      round(accuracy_score(y_test,predict),5)*100,'%')
+
+
+cnf_matrix = confusion_matrix(y_test,predict)
+
+cnf_matrix
+class_names = [0,1]
+
+fig,ax = plt.subplots()
+
+tick_marks = np.arange(len(class_names))
+
+plt.xticks(tick_marks,class_names)
+
+plt.yticks(tick_marks,class_names)
+
+
+
+#create a heat map
+
+sns.heatmap(pd.DataFrame(cnf_matrix), annot = True, cmap = 'YlGnBu',
+
+           fmt = 'g')
+
+ax.xaxis.set_label_position('top')
+
+plt.tight_layout()
+
+plt.title('Confusion matrix', y = 1.1)
+
+plt.ylabel('Actual label')
+
+plt.xlabel('Predicted label')
+
+plt.show()

@@ -1,0 +1,133 @@
+import numpy as np
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import Dropout
+from keras.layers import Flatten
+from keras.layers.convolutional import Conv2D
+from keras.layers.convolutional import MaxPooling2D
+from keras.utils import np_utils
+import pandas as pd
+
+# fix dimension ordering issue
+# https://stackoverflow.com/questions/39547279/loading-weights-in-th-format-when-keras-is-set-to-tf-format
+from keras import backend as K
+K.set_image_dim_ordering('th')
+# Let's read our training and test set from the attached dataset
+train = pd.read_csv("../input/digit-recognizer/train.csv").values
+
+# The first column of the dataset tell us the actual value
+x_train = train[:, 1:].astype('float32')
+y_train = train[:, 0]
+
+# So far we have loaded the 2 variables that we need
+# 1. x_train -> has the images to train on
+# 2. y_train -> has the value for those images
+# Let's normalize from 0 to 255 to 0 to 1. It's a good practice when dealing with 
+# neural networks that the inputs have short range of values.
+x_train /= 255
+print (x_train.shape)
+print (y_train.shape)
+y_train = np_utils.to_categorical(y_train)
+num_pixels = 28 * 28
+num_classes = 10
+
+model = Sequential()
+
+model.add(Dense(num_pixels, input_dim=num_pixels, activation='relu'))
+model.add(Dense(num_classes, activation='softmax'))
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+print (model.summary())
+model.fit(x_train, y_train, epochs=10, batch_size=200, verbose=2, validation_split=0.2)
+# reshape to be [samples][channels][width][height]
+x_train = x_train.reshape(x_train.shape[0], 1, 28, 28).astype('float32')
+print (x_train.shape)
+model = Sequential()
+model.add(Conv2D(filters=32, kernel_size=(5, 5), input_shape=(1, 28, 28), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dense(num_classes, activation='softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+print (model.summary())
+model.fit(x_train, y_train, epochs=10, batch_size=200, verbose=2, validation_split=0.2)
+model = Sequential()
+model.add(Conv2D(filters=30, kernel_size=(5, 5), input_shape=(1, 28, 28), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Conv2D(filters=15, kernel_size=(3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.2))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dense(50, activation='relu'))
+model.add(Dense(num_classes, activation='softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+print (model.summary())
+model.fit(x_train, y_train, epochs=10, batch_size=200, verbose=2, validation_split=0.2)
+from keras.applications.inception_v3 import InceptionV3
+weights = '../input/inceptionv3/inception_v3_weights_tf_dim_ordering_tf_kernels.h5'
+model = InceptionV3(weights=weights)
+print (model.summary())
+from os import makedirs
+from os.path import join, exists, expanduser
+
+cache_dir = expanduser(join('~', '.keras'))
+if not exists(cache_dir):
+    makedirs(cache_dir)
+models_dir = join(cache_dir, 'models')
+if not exists(models_dir):
+    makedirs(models_dir)
+!cp  ../input/inceptionv3/* ~/.keras/models/
+from keras.applications.inception_v3 import preprocess_input, decode_predictions
+import time
+
+current_milli_time = lambda: int(round(time.time() * 1000))
+from keras.preprocessing import image
+img_path = "../input/dogs-vs-cats-redux-kernels-edition/train/dog.4444.jpg"
+img = image.load_img(img_path, target_size=(224, 224))
+img
+img = image.img_to_array(img)
+img = np.expand_dims(img, axis=0)
+img = preprocess_input(img)
+
+start = current_milli_time()
+preds = model.predict(img)
+end = current_milli_time()
+print('Predicted in {} ms: {}'.format(end-start, decode_predictions(preds, top=3)[0]))
+from keras.preprocessing import image
+img_path = "../input/dogs-vs-cats-redux-kernels-edition/train/cat.5555.jpg"
+img = image.load_img(img_path, target_size=(224, 224))
+img
+img = image.img_to_array(img)
+img = np.expand_dims(img, axis=0)
+img = preprocess_input(img)
+
+start = current_milli_time()
+preds = model.predict(img)
+end = current_milli_time()
+print('Predicted in {} ms: {}'.format(end-start, decode_predictions(preds, top=3)[0]))
+from keras.preprocessing import image
+img_path = "../input/flowers-recognition/flowers/flowers/daisy/34539556222_f7ba32f704_n.jpg"
+img = image.load_img(img_path, target_size=(224, 224))
+img
+img = image.img_to_array(img)
+img = np.expand_dims(img, axis=0)
+img = preprocess_input(img)
+
+start = current_milli_time()
+preds = model.predict(img)
+end = current_milli_time()
+print('Predicted in {} ms: {}'.format(end-start, decode_predictions(preds, top=3)[0]))
+from keras.preprocessing import image
+img_path = "../input/flowers-recognition/flowers/flowers/rose/9609569441_eeb8566e94.jpg"
+img = image.load_img(img_path, target_size=(224, 224))
+img
+img = image.img_to_array(img)
+img = np.expand_dims(img, axis=0)
+img = preprocess_input(img)
+
+start = current_milli_time()
+preds = model.predict(img)
+end = current_milli_time()
+print('Predicted in {} ms: {}'.format(end-start, decode_predictions(preds, top=3)[0]))

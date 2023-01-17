@@ -1,0 +1,346 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+import os
+
+%matplotlib inline
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import os
+from glob import glob
+import seaborn as sns
+from PIL import Image
+np.random.seed(11) # It's my lucky number
+from sklearn.preprocessing import StandardScaler 
+from sklearn.model_selection import train_test_split, KFold, cross_val_score, GridSearchCV
+from sklearn.metrics import accuracy_score
+import itertools
+import glob
+import cv2
+
+import keras
+from keras.utils.np_utils import to_categorical # used for converting labels to one-hot-encoding
+from keras.models import Sequential, Model
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D
+from keras import backend as K
+from keras.layers.normalization import BatchNormalization
+from keras.utils.np_utils import to_categorical # convert to one-hot-encoding
+from keras.optimizers import Adam, RMSprop
+from keras.preprocessing.image import ImageDataGenerator
+from keras.callbacks import ReduceLROnPlateau
+from keras.wrappers.scikit_learn import KerasClassifier
+from keras.applications.resnet50 import ResNet50
+from keras import backend as K 
+
+folder_benign_train = '../input/skin-cancer/training/training/benign'
+folder_malignant_train = '../input/skin-cancer/training/training/malignant'
+folder_benign_test = '../input/skin-cancer/testing/testing/benign'
+folder_malignant_test = '../input/skin-cancer/testing/testing/malignant'
+read = lambda imname: np.asarray(Image.open(imname).convert("RGB"))
+
+# Load in training pictures 
+def read_images(directory):
+    for img in glob.glob(directory+"/*.jpg"):
+        image = cv2.imread(img)
+        resized_img = cv2.resize(image, (224 , 224))
+        
+        yield resized_img
+        
+# cleaning the images
+figure_size = 9 # the dimension of the x and y axis of the kernal
+def clean_images(directory):
+    for img in glob.glob(directory+"/*.jpg"):
+        image = cv2.imread(img,cv2.COLOR_BGR2GRAY)
+        cleaned_img = cv2.medianBlur(image, figure_size)
+                
+clean_images(folder_benign_train)           
+clean_images(folder_malignant_train)
+clean_images(folder_benign_test) 
+clean_images(folder_malignant_test)
+
+resized_b_tr =  np.array(list(read_images(folder_benign_train)))
+X_benign_train = np.array(resized_b_tr,dtype='uint8')
+        
+resized_m_tr =  np.array(list(read_images(folder_malignant_train)))
+X_malignant_train = np.array(resized_m_tr,dtype='uint8')
+
+# Load in testing pictures
+
+resized_b_te =  np.array(list(read_images(folder_benign_test)))
+X_benign_test = np.array(resized_b_te,dtype='uint8')
+        
+resized_m_te =  np.array(list(read_images(folder_malignant_test)))
+X_malignant_test = np.array(resized_m_te,dtype='uint8')
+
+print('benign_train: {} \nmalignant_train: {}'.format(len(X_benign_train), len(X_malignant_train)))
+print('benign_test: {} \nmalignant_test: {}'.format(len(X_benign_test), len(X_malignant_test)))
+
+# Create labels 0 -->benign , 1-->malignant
+y_benign_train = np.zeros(X_benign_train.shape[0])
+y_malignant_train = np.ones(X_malignant_train.shape[0])
+
+y_benign_test = np.zeros(X_benign_test.shape[0])
+y_malignant_test = np.ones(X_malignant_test.shape[0])
+
+# Merge data bgm3 el images m3 b3d el malignant w el benign
+
+X_train = np.concatenate((X_benign_train, X_malignant_train), axis = 0) #axis = 0 3lshan bgm3 coloumns m3 b3d
+y_train = np.concatenate((y_benign_train, y_malignant_train), axis = 0)
+
+X_test = np.concatenate((X_benign_test, X_malignant_test), axis = 0)
+y_test = np.concatenate((y_benign_test, y_malignant_test), axis = 0)
+
+# Shuffle data
+s = np.arange(X_train.shape[0])
+np.random.shuffle(s)
+X_train = X_train[s]
+y_train = y_train[s]
+
+s = np.arange(X_test.shape[0])
+np.random.shuffle(s)
+X_test = X_test[s]
+y_test = y_test[s]
+print('train: {} \nTest: {}'.format(len(X_train), len(X_test)))
+# Display first 15 images of moles, and how they are classified
+w=40
+h=30
+fig=plt.figure(figsize=(12, 8))
+columns = 5
+rows = 3
+
+for i in range(1, columns*rows +1):
+    ax = fig.add_subplot(rows, columns, i)
+    if y_train[i] == 0:
+        ax.title.set_text('Benign')
+    else:
+        ax.title.set_text('Malignant')
+    plt.imshow(X_train[i], interpolation='nearest')
+plt.show()
+# cleaning the images
+figure_size = 9 # the dimension of the x and y axis of the kernal
+def read_clean_images(directory):
+    for img in glob.glob(directory+"/*.jpg"):
+        image = cv2.imread(img,  cv2.COLOR_BGR2GRAY)
+        #image=np.asarray(image.convert("RGB"))
+        cleaned_img = cv2.medianBlur(image, figure_size)
+        plt.figure(figsize=(11,6))
+        plt.subplot(121), plt.imshow(cv2.cvtColor(image, cv2.COLOR_HSV2RGB)),plt.title('Original')
+        plt.xticks([]), plt.yticks([])
+        plt.subplot(122), plt.imshow(cv2.cvtColor(cleaned_img, cv2.COLOR_HSV2RGB),cmap='gray'),plt.title('Median Filter')
+        plt.xticks([]), plt.yticks([])
+        plt.show()
+        
+            
+read_clean_images(folder_malignant_test)
+
+
+#Categorical Labels lw 3ndy aktr mn category w 3yza a3br 3nhm b binary bs 
+y_train = to_categorical(y_train, num_classes= 2)
+y_test = to_categorical(y_test, num_classes= 2)
+# With data augmentation to prevent overfitting 
+# normalization bst5dmha 3lshan 7agten 1-data balancing(lw 3ndy swar type mo3yn aktr bkteeeer mn el tany)
+# 2-data scailing lw el data nfsha msh 7gm b3d msln  
+X_train = X_train/255.
+X_test = X_test/255.
+# See learning curve and validation curve
+
+def build(input_shape= (224,224,3), lr = 1e-3, num_classes= 2,
+          init= 'normal', activ= 'relu', optim= 'adam'):
+    model = Sequential()
+    model.add(Conv2D(64, kernel_size=(3, 3),padding = 'Same',input_shape=input_shape,
+                     activation= activ, kernel_initializer='glorot_uniform'))
+    model.add(MaxPool2D(pool_size = (2, 2)))
+    model.add(Dropout(0.25))
+
+    model.add(Conv2D(64, kernel_size=(3, 3),padding = 'Same', 
+                     activation =activ, kernel_initializer = 'glorot_uniform'))
+    model.add(MaxPool2D(pool_size = (2, 2)))
+    model.add(Dropout(0.25))
+
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu', kernel_initializer=init))
+    model.add(Dense(num_classes, activation='softmax'))
+    model.summary()
+
+    if optim == 'rmsprop':
+        optimizer = RMSprop(lr=lr)
+
+    else:
+        optimizer = Adam(lr=lr)
+
+    model.compile(optimizer = optimizer ,loss = "binary_crossentropy", metrics=["accuracy"])
+    return model
+
+# Set a learning rate annealer
+learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc', 
+                                            patience=5, 
+                                            verbose=1, 
+                                            factor=0.5, 
+                                            min_lr=1e-7)
+input_shape = (224,224,3)
+lr = 1e-5
+init = 'normal'
+activ = 'relu'
+optim = 'adam'
+epochs = 50
+batch_size = 64
+
+model = build(lr=lr, init= init, activ= activ, optim=optim, input_shape= input_shape)
+
+history = model.fit(X_train, y_train, validation_split=0.2,
+                    epochs= epochs, batch_size= batch_size, verbose=0, 
+                    callbacks=[learning_rate_reduction]
+                   )
+                   
+
+# list all data in history
+print(history.history.keys())
+# summarize history for accuracy
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+K.clear_session()
+del model
+del history
+# define 3-fold cross validation test harness
+kfold = KFold(n_splits=3, shuffle=True, random_state=11)
+
+cvscores = []
+for train, test in kfold.split(X_train, y_train):
+  # create model
+    model = build(lr=lr, 
+                  init= init, 
+                  activ= activ, 
+                  optim=optim, 
+                  input_shape= input_shape)
+    
+    # Fit the model
+    model.fit(X_train[train], y_train[train], epochs=epochs, batch_size=batch_size, verbose=0)
+    # evaluate the model
+    scores = model.evaluate(X_train[test], y_train[test], verbose=0)
+    print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
+    cvscores.append(scores[1] * 100)
+    K.clear_session()
+    del model
+    
+print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+# Fitting model to all data
+model = build(lr=lr, 
+              init= init, 
+              activ= activ, 
+              optim=optim, 
+              input_shape= input_shape)
+
+model.fit(X_train, y_train,
+          epochs=epochs, batch_size= batch_size, verbose=0,
+          callbacks=[learning_rate_reduction]
+         )
+
+# Testing model on test data to evaluate
+y_pred = model.predict_classes(X_test)
+
+print(accuracy_score(np.argmax(y_test, axis=1),y_pred))
+# save model
+# serialize model to JSON
+model_json = model.to_json()
+
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+    
+# serialize weights to HDF5
+model.save_weights("model.h5")
+print("Saved model to disk")
+
+# Clear memory, because of memory overload
+del model
+K.clear_session()
+input_shape = (224,224,3)
+lr = 1e-5
+epochs = 50
+batch_size = 64
+
+model = ResNet50(include_top=True,
+                 weights= None,
+                 input_tensor=None,
+                 input_shape=input_shape,
+                 pooling='avg',
+                 classes=2)
+
+model.compile(optimizer = Adam(lr) ,
+              loss = "binary_crossentropy", 
+              metrics=["accuracy"])
+
+history = model.fit(X_train, y_train, validation_split=0.2,
+                    epochs= epochs, batch_size= batch_size, verbose=2, 
+                    callbacks=[learning_rate_reduction]
+                   )
+
+# list all data in history
+print(history.history.keys())
+# summarize history for accuracy
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+# Train ResNet50 on all the data
+model.fit(X_train, y_train,
+          epochs=epochs, batch_size= epochs, verbose=0,
+          callbacks=[learning_rate_reduction]
+         )
+# Testing model on test data to evaluate
+y_pred = model.predict(X_test)
+print(accuracy_score(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)))
+
+# save model
+# serialize model to JSON
+resnet50_json = model.to_json()
+
+with open("resnet50.json", "w") as json_file:
+    json_file.write(resnet50_json)
+    
+# serialize weights to HDF5
+model.save_weights("resnet50.h5")
+print("Saved model to disk")
+final_test_b="../input/finaltest/ISIC_0011035.jpg"
+final_test_m = "../input/finaltest/ISIC_0000043.jpg"
+
+print(model.predict(final_test_b))
+print(model.predict(final_test_m))

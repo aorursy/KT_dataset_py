@@ -1,0 +1,2 @@
+import pandas as pd
+pd.DataFrame([1,2,3]).hist()

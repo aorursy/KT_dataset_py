@@ -1,0 +1,26 @@
+import pandas as pd
+rawdata = pd.read_csv("../input/Office_Abigail.csv", parse_dates=True, index_col='timestamp')
+rawdata.info()
+rawdata.plot(figsize=(10,4))
+weather_data = pd.read_csv("../input/weather0.csv", index_col='timestamp', parse_dates=True)
+weather_data.head()
+weather_data.info()
+weather_hourly = weather_data.resample("H").mean()
+weather_hourly.head()
+weather_hourly["TemperatureC"].plot(figsize=(10,4))
+weather_hourly_nooutlier = weather_hourly[weather_hourly > -40]
+weather_hourly_nooutlier["TemperatureC"].plot(figsize=(10,4))
+weather_hourly_nooutlier.info()
+weather_hourly_nooutlier.head()
+weather_hourly_nooutlier_nogaps = weather_hourly_nooutlier.fillna(method='ffill')
+weather_hourly_nooutlier_nogaps.info()
+weather_hourly_nooutlier_nogaps['TemperatureC'].head()
+rawdata = rawdata[~rawdata.index.duplicated(keep='first')]
+
+rawdata['Office_Abigail'].head()
+comparison = pd.concat([weather_hourly_nooutlier_nogaps['TemperatureC'],rawdata['Office_Abigail']], axis=1)
+comparison.info()
+comparison.plot(figsize=(20,10), subplots=True)
+comparison.info()
+comparison.plot(kind='scatter',x='TemperatureC', y='Office_Abigail', figsize=(10,10))
+comparison.resample("D").mean().plot(kind='scatter',x='TemperatureC', y='Office_Abigail', figsize=(10,10))

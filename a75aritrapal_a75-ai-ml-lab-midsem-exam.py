@@ -1,0 +1,126 @@
+#1
+
+import numpy as np
+
+a=np.array([9,5,4,3,2,6])
+
+b=np.array([5,8,6,9,2,1])
+
+print("CHECK IF B HAS SAME VIEWS TO MEMORY IN A")
+
+print(b.base is a)
+
+print("CHECK IF A HAS SAME VIEWS TO MEMORY IN B")
+
+print(a.base is b)
+
+div_by_3=a%3==0
+
+div1_by_3=b%3==0
+
+print("Divisible By 3")
+
+print(a[div_by_3])
+
+print(b[div1_by_3])
+
+b[::-1].sort()
+
+print("SECOND ARRAY SORTED")
+
+print(b)
+
+print("SUM OF ELEMENTS OF FIRST ARRAY")
+
+print(np.sum(a))
+#2
+
+df = pd.read_csv("../input/titanic/train_and_test2.csv")
+
+df.head()
+
+
+
+df.dropna(axis=1, how='all')
+
+print(df.head())
+
+print(df.shape)
+
+
+
+df[:50].mean()
+
+
+
+df[df['Sex']==1].mean()
+
+
+
+df['Fare'].max()
+#3
+
+import matplotlib.pyplot as plt
+
+teams = ['English', 'Maths', 'Science ', 'History', 'Geography']
+
+slices = [86, 83, 86, 90, 88]
+
+colors = ['r', 'y', 'g', 'b','c']
+
+plt.pie(slices, labels = teams, colors=colors,
+
+ startangle=90, shadow = True, explode = (0, 0.5, 0, 0, 0),
+
+ radius = 1.2, autopct = '%1.1f%%')
+
+plt.show()
+#4
+
+import pandas as pd
+
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+
+from sklearn.metrics import confusion_matrix
+
+from sklearn.model_selection import cross_val_predict
+
+from sklearn.linear_model import LogisticRegression
+
+from sklearn.metrics import f1_score
+
+
+
+
+
+train = pd.read_csv("../input/iris-flower-dataset/IRIS.csv")
+
+X= train.drop("species", axis=1)
+
+y= train["species"]
+
+X_train, X_test,y_train, y_test= train_test_split(X,y, test_size=0.3)
+
+
+
+logmodel= LogisticRegression()
+
+logmodel.fit(X_train, y_train)
+
+
+
+predictions = logmodel.predict(X_test)
+
+
+
+print("F1 Score(macro):", f1_score(y_test, predictions, average='macro'))
+
+print("F1 Score(micro):", f1_score(y_test, predictions, average='micro'))
+
+print("F1 Score(weighted):", f1_score(y_test, predictions, average='weighted'))
+
+print("\confusion Matrix(below):\n")
+
+confusion_matrix(y_test, predictions)

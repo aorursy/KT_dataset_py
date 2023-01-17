@@ -1,0 +1,10 @@
+from ipywidgets import Image
+f = open("../input/cord-images/paper_clusters.png", "rb")
+image = f.read()
+Image(value=image)
+f = open("../input/cord-images/search2d.png", "rb")
+image = f.read()
+Image(value=image)
+f = open("../input/cord-images/advancedsearch.png", "rb")
+image = f.read()
+Image(value=image)

@@ -1,0 +1,1 @@
+!ffmpeg -r 30    -i ../input/digits-in-noise/Test/N%d.jpg   -vcodec mpeg4 -y movie.mp4

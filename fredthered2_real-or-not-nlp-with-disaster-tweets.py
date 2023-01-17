@@ -1,0 +1,197 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# Any results you write to the current directory are saved as output.
+from nltk.corpus import stopwords
+stop_words=stopwords.words('english')
+
+from sklearn import model_selection
+import string
+import re
+from nltk.stem.wordnet import WordNetLemmatizer
+lem=WordNetLemmatizer()
+df_train=pd.read_csv('/kaggle/input/nlp-getting-started/train.csv')
+df_test=pd.read_csv('/kaggle/input/nlp-getting-started/test.csv')
+df_train.head()
+df_train.drop(['keyword','location'],axis=1,inplace=True)
+df_train.head()
+string.punctuation
+def text_preprocess(text):
+    words=text.lower().split()
+    actual_list=[]
+    for word in words:
+        word = re.sub(r"\x89Û_", "", word)
+        word = re.sub(r"\x89ÛÒ", "", word)
+        word = re.sub(r"\x89ÛÓ", "", word)
+        word = re.sub(r"\x89ÛÏWhen", "When", word)
+        word = re.sub(r"\x89ÛÏ", "", word)
+        word = re.sub(r"China\x89Ûªs", "China's", word)
+        word = re.sub(r"let\x89Ûªs", "let's", word)
+        word = re.sub(r"\x89Û÷", "", word)
+        word = re.sub(r"\x89Ûª", "", word)
+        word = re.sub(r"\x89Û\x9d", "", word)
+        word = re.sub(r"å_", "", word)
+        word = re.sub(r"\x89Û¢", "", word)
+        word = re.sub(r"\x89Û¢åÊ", "", word)
+        word = re.sub(r"fromåÊwounds", "from wounds", word)
+        word = re.sub(r"åÊ", "", word)
+        word = re.sub(r"åÈ", "", word)
+        word = re.sub(r"JapÌ_n", "Japan", word)    
+        word = re.sub(r"Ì©", "e", word)
+        word = re.sub(r"å¨", "", word)
+        word = re.sub(r"SuruÌ¤", "Suruc", word)
+        word = re.sub(r"åÇ", "", word)
+        word = re.sub(r"å£3million", "3 million", word)
+        word = re.sub(r"åÀ", "", word)
+        
+        # Contractions
+        word = re.sub(r"he's", "he is", word)
+        word = re.sub(r"there's", "there is", word)
+        word = re.sub(r"We're", "We are", word)
+        word = re.sub(r"That's", "That is", word)
+        word = re.sub(r"won't", "will not", word)
+        word = re.sub(r"they're", "they are", word)
+        word = re.sub(r"Can't", "Cannot", word)
+        word = re.sub(r"wasn't", "was not", word)
+        word = re.sub(r"don\x89Ûªt", "do not", word)
+        word = re.sub(r"aren't", "are not", word)
+        word = re.sub(r"isn't", "is not", word)
+        word = re.sub(r"What's", "What is", word)
+        word = re.sub(r"haven't", "have not", word)
+        word = re.sub(r"hasn't", "has not", word)
+        word = re.sub(r"There's", "There is", word)
+        word = re.sub(r"He's", "He is", word)
+        word = re.sub(r"It's", "It is", word)
+        word = re.sub(r"You're", "You are", word)
+        word = re.sub(r"I'M", "I am", word)
+        word = re.sub(r"shouldn't", "should not", word)
+        word = re.sub(r"wouldn't", "would not", word)
+        word = re.sub(r"i'm", "I am", word)
+        word = re.sub(r"I\x89Ûªm", "I am", word)
+        word = re.sub(r"I'm", "I am", word)
+        word = re.sub(r"Isn't", "is not", word)
+        word = re.sub(r"Here's", "Here is", word)
+        word = re.sub(r"you've", "you have", word)
+        word = re.sub(r"you\x89Ûªve", "you have", word)
+        word = re.sub(r"we're", "we are", word)
+        word = re.sub(r"what's", "what is", word)
+        word = re.sub(r"couldn't", "could not", word)
+        word = re.sub(r"we've", "we have", word)
+        word = re.sub(r"it\x89Ûªs", "it is", word)
+        word = re.sub(r"doesn\x89Ûªt", "does not", word)
+        word = re.sub(r"It\x89Ûªs", "It is", word)
+        word = re.sub(r"Here\x89Ûªs", "Here is", word)
+        word = re.sub(r"who's", "who is", word)
+        word = re.sub(r"I\x89Ûªve", "I have", word)
+        word = re.sub(r"y'all", "you all", word)
+        word = re.sub(r"can\x89Ûªt", "cannot", word)
+        word = re.sub(r"would've", "would have", word)
+        word = re.sub(r"it'll", "it will", word)
+        word = re.sub(r"we'll", "we will", word)
+        word = re.sub(r"wouldn\x89Ûªt", "would not", word)
+        word = re.sub(r"We've", "We have", word)
+        word = re.sub(r"he'll", "he will", word)
+        word = re.sub(r"Y'all", "You all", word)
+        word = re.sub(r"Weren't", "Were not", word)
+        word = re.sub(r"Didn't", "Did not", word)
+        word = re.sub(r"they'll", "they will", word)
+        word = re.sub(r"they'd", "they would", word)
+        word = re.sub(r"DON'T", "DO NOT", word)
+        word = re.sub(r"That\x89Ûªs", "That is", word)
+        word = re.sub(r"they've", "they have", word)
+        word = re.sub(r"i'd", "I would", word)
+        word = re.sub(r"should've", "should have", word)
+        word = re.sub(r"You\x89Ûªre", "You are", word)
+        word = re.sub(r"where's", "where is", word)
+        word = re.sub(r"Don\x89Ûªt", "Do not", word)
+        word = re.sub(r"we'd", "we would", word)
+        word = re.sub(r"i'll", "I will", word)
+        word = re.sub(r"weren't", "were not", word)
+        word = re.sub(r"They're", "They are", word)
+        word = re.sub(r"Can\x89Ûªt", "Cannot", word)
+        word = re.sub(r"you\x89Ûªll", "you will", word)
+        word = re.sub(r"I\x89Ûªd", "I would", word)
+        word = re.sub(r"let's", "let us", word)
+        word = re.sub(r"it's", "it is", word)
+        word = re.sub(r"can't", "cannot", word)
+        word = re.sub(r"don't", "do not", word)
+        word = re.sub(r"you're", "you are", word)
+        word = re.sub(r"i've", "I have", word)
+        word = re.sub(r"that's", "that is", word)
+        word = re.sub(r"i'll", "I will", word)
+        word = re.sub(r"doesn't", "does not", word)
+        word = re.sub(r"i'd", "I would", word)
+        word = re.sub(r"didn't", "did not", word)
+        word = re.sub(r"ain't", "am not", word)
+        word = re.sub(r"you'll", "you will", word)
+        word = re.sub(r"I've", "I have", word)
+        word = re.sub(r"Don't", "do not", word)
+        word = re.sub(r"I'll", "I will", word)
+        word = re.sub(r"I'd", "I would", word)
+        word = re.sub(r"Let's", "Let us", word)
+        word = re.sub(r"you'd", "You would", word)
+        word = re.sub(r"It's", "It is", word)
+        word = re.sub(r"Ain't", "am not", word)
+        word = re.sub(r"Haven't", "Have not", word)
+        word = re.sub(r"Could've", "Could have", word)
+        word = re.sub(r"youve", "you have", word)  
+        word = re.sub(r"donå«t", "do not", word)   
+                
+        # Character entity references
+        word = re.sub(r"&gt;", ">", word)
+        word = re.sub(r"&lt;", "<", word)
+        word = re.sub(r"&amp;", "&", word)
+        
+        # Typos, slang and informal abbreviations
+        word = re.sub(r"w/e", "whatever", word)
+        word = re.sub(r"w/", "with", word)
+        word = re.sub(r"USAgov", "USA government", word)
+        word = re.sub(r"recentlu", "recently", word)
+        word = re.sub(r"Ph0tos", "Photos", word)
+        word = re.sub(r"amirite", "am I right", word)
+        word = re.sub(r"exp0sed", "exposed", word)
+        word = re.sub(r"<3", "love", word)
+        word = re.sub(r"amageddon", "armageddon", word)
+        word = re.sub(r"Trfc", "Traffic", word)
+        word = re.sub(r"8/5/2015", "2015-08-05", word)
+        word = re.sub(r"WindStorm", "Wind Storm", word)
+        word = re.sub(r"8/6/2015", "2015-08-06", word)
+        word = re.sub(r"10:38PM", "10:38 PM", word)
+        word = re.sub(r"10:30pm", "10:30 PM", word)
+        word = re.sub(r"16yr", "16 year", word)
+        word = re.sub(r"lmao", "laughing my ass off", word)   
+        word = re.sub(r"TRAUMATISED", "traumatized", word)
+        
+        if word not in stop_words:
+            if word not in string.punctuation:
+                actual_list.append(lem.lemmatize(word))
+    return(' '.join(actual_list))       
+df_train.groupby('target').describe()
+df_train.shape
+from sklearn.feature_extraction.text import TfidfVectorizer
+Vect=TfidfVectorizer(analyzer=text_preprocess)
+Model=Vect.fit_transform(df_train['text'])
+Model_test=Vect.transform(df_test["text"])
+#from sklearn.model_selection import train_test_split
+#X_train, X_test, y_train, y_test = train_test_split(SMS_TEXTS, sms['label'], test_size=0.20, random_state=0)
+from sklearn.naive_bayes import MultinomialNB
+classifier = MultinomialNB()
+scores = model_selection.cross_val_score(classifier, Model, df_train["target"], cv=10, scoring="f1")
+scores
+classifier.fit(Model, df_train["target"])
+sample_submission = pd.read_csv("/kaggle/input/nlp-getting-started/sample_submission.csv")
+sample_submission["target"] = classifier.predict(Model_test)
+sample_submission.head()
+sample_submission.to_csv("submission.csv", index=False)

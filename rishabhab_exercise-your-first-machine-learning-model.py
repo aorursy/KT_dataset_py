@@ -1,0 +1,76 @@
+# Code you have previously used to load data
+import pandas as pd
+
+# Path of the file to read
+iowa_file_path = '../input/home-data-for-ml-course/train.csv'
+
+home_data = pd.read_csv(iowa_file_path)
+
+# Set up code checking
+from learntools.core import binder
+binder.bind(globals())
+from learntools.machine_learning.ex3 import *
+
+print("Setup Complete")
+# print the list of columns in the dataset to find the name of the prediction target
+home_data.columns
+y = home_data.SalePrice #Because the dot operator is used to define target variable ie the dependent var
+
+# Check your answer
+step_1.check()
+#The lines below will show you a hint or the solution.
+step_1.hint() 
+step_1.solution()
+# Create the list of features below
+feature_names = ['LotArea','YearBuilt','1stFlrSF','2ndFlrSF','FullBath','BedroomAbvGr','TotRmsAbvGrd']
+
+# Select data corresponding to features in feature_names
+X = home_data[feature_names]
+
+# Check your answer
+step_2.check()
+
+# also in the next part of question, we are 
+# going to use the head function to see whether 
+# the features that we have selected in feature names have indeed been taken up by the program
+# step_2.hint()
+# step_2.solution()
+# Review data
+# print description or statistics from X
+print(X.describe()) #the summary statistics of the features that we have selected. In selection of features: parsimonious
+
+# print the top few lines
+print(X.head()) #mostly the first five to six rows
+from sklearn.tree import DecisionTreeRegressor ##we want to use decision tree
+#specify the model. 
+#For model reproducibility, set a numeric value for random_state when specifying the model
+
+iowa_model = DecisionTreeRegressor(random_state=1)
+
+# Fit the model
+iowa_model.fit(X,y)
+
+# Check your answer
+step_3.check()
+# step_3.hint()
+# step_3.solution()
+predictions = iowa_model.predict(X)
+print(predictions)
+
+# Check your answer
+step_4.check()
+step_4.hint()
+step_4.solution()
+difference_vector=home_data["SalePrice"]-predictions
+
+print(difference_vector)
+
+from statistics import mean
+mean(difference_vector)
+max(difference_vector)
+
+from matplotlib.pyplot import plot
+
+plot(difference_vector)
+# You can write code in this cell
+home_data.SalePrice.head()

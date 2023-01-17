@@ -1,0 +1,1514 @@
+import pandas as pd
+# Meta data :
+
+meta = pd.read_csv("/kaggle/input/CORD-19-research-challenge/metadata.csv")
+meta.head(3)
+meta.shape
+meta.columns
+meta.dtypes
+# Charge all .Json files:
+
+import glob
+
+papers = glob.glob(f'/kaggle/input/CORD-19-research-challenge/**/*.json', recursive=True)
+len(papers)
+# import json
+
+# papers_data = pd.DataFrame(columns=['PaperID','Title','Section','Text','Affilations'], index=range(len(papers)*50))
+
+
+
+# # Remove duplicates in a list:
+
+# def my_function(x):
+
+#     return list(dict.fromkeys(x))
+
+
+
+# i=0
+
+# for j in range(len(papers)):
+
+#     with open(papers[j]) as file:
+
+#         content = json.load(file)
+
+        
+
+#         # ID and Title:
+
+#         pap_id = content['paper_id']
+
+#         title =  content['metadata']['title']
+
+        
+
+#         # Affiations:
+
+#         affiliation = []
+
+#         for sec in content['metadata']['authors']:
+
+#             try:
+
+#                 affiliation.append(sec['affiliation']['institution'])
+
+#             except:
+
+#                 pass
+
+#         affiliation = my_function(affiliation)
+
+        
+
+#         # Abstract
+
+#         for sec in content['abstract']:
+
+#             papers_data.iloc[i, 0] = pap_id
+
+#             papers_data.iloc[i, 1] = title
+
+#             papers_data.iloc[i, 2] = sec['section']
+
+#             papers_data.iloc[i, 3] = sec['text']
+
+#             papers_data.iloc[i, 4] = affiliation
+
+#             i = i + 1
+
+            
+
+#         # Body text
+
+#         for sec in content['body_text']:
+
+#             papers_data.iloc[i, 0] = pap_id
+
+#             papers_data.iloc[i, 1] = title
+
+#             papers_data.iloc[i, 2] = sec['section']
+
+#             papers_data.iloc[i, 3] = sec['text']
+
+#             papers_data.iloc[i, 4] = affiliation
+
+#             i = i + 1
+
+
+
+# papers_data.dropna(inplace=True)
+
+# papers_data = papers_data.astype(str).drop_duplicates() 
+
+
+
+# # Text processing:
+
+# import nltk
+
+# nltk.download('punkt')
+
+# # Lowercase:
+
+# for i in range(len(papers_data)):
+
+#     try:
+
+#         papers_data.iloc[i, 1] = papers_data.iloc[i, 1].lower()
+
+#         papers_data.iloc[i, 2] = papers_data.iloc[i, 2].lower()
+
+#         papers_data.iloc[i, 3] = papers_data.iloc[i, 3].lower()
+
+#         papers_data.iloc[i, 4] = papers_data.iloc[i, 4].lower()
+
+#     except:
+
+#         pass
+
+    
+
+# # Tokenization:
+
+
+
+# from nltk.tokenize import word_tokenize, sent_tokenize , RegexpTokenizer
+
+
+
+# tokenizer = RegexpTokenizer(r'\w+') # remove punctuation
+
+# papers_data["Title_Tokens_words"] = [list() for x in range(len(papers_data.index))]
+
+# papers_data["Text_Tokens_words"] = [list() for x in range(len(papers_data.index))]
+
+
+
+# for i in range(len(papers_data)):
+
+#     try:
+
+#         papers_data.iloc[i, 5] = tokenizer.tokenize(papers_data.iloc[i, 1])
+
+#         papers_data.iloc[i, 6] = tokenizer.tokenize(papers_data.iloc[i, 3])
+
+#     except:
+
+#         pass
+
+    
+
+# # Remove stopwords:
+
+# nltk.download('stopwords')
+
+# from nltk.corpus import stopwords
+
+# stop_words = set(stopwords.words('english')) 
+
+
+
+# for i in range(len(papers_data)):
+
+#     try:
+
+#         papers_data.iloc[i, 5] = [w for w in papers_data.iloc[i, 5] if not w in stop_words] 
+
+#         papers_data.iloc[i, 6] = [w for w in papers_data.iloc[i, 6] if not w in stop_words]
+
+#     except:
+
+#         pass
+
+    
+
+# # Words count:  
+
+# papers_data["Words_count"] = 0
+
+
+
+# # for i in range(len(papers_data)):
+
+# #     try:
+
+# #         papers_data.iloc[i, 7] = len(papers_data.iloc[i, 6])
+
+# #     except:
+
+# #         pass
+
+    
+
+# # Lemmatization :
+
+# nltk.download('wordnet')
+
+
+
+# from nltk.stem import WordNetLemmatizer
+
+
+
+# wordnet_lemmatizer = WordNetLemmatizer()
+
+
+
+# papers_data["Text_Lem_words"] = [list() for x in range(len(papers_data))]
+
+
+
+# for i in range(len(papers_data)):
+
+#     for j in range(len(papers_data.iloc[i, 6])):
+
+#         papers_data.iloc[i, 8].append(wordnet_lemmatizer.lemmatize(papers_data.iloc[i, 6][j]))
+
+        
+
+# papers_data["Title_Lem_words"] = [list() for x in range(len(papers_data))]
+
+
+
+# for i in range(len(papers_data)):
+
+#     for j in range(len(papers_data.iloc[i, 5])):
+
+#         papers_data.iloc[i, 9].append(wordnet_lemmatizer.lemmatize(papers_data.iloc[i, 5][j]))
+
+        
+
+# papers_data.to_csv("/kaggle/input/processed-researches-data/papers_data_final.csv")
+
+print("Preprocessing done!")
+papers_data = pd.read_csv("/kaggle/input/processed-researches-data/papers_data_final.csv")
+del papers_data['Unnamed: 0']
+papers_data
+import ast
+
+papers_data['Affilations'] = papers_data['Affilations'].apply(lambda x: ast.literal_eval(x))
+
+papers_data['Text_Lem_words'] = papers_data['Text_Lem_words'].apply(lambda x: ast.literal_eval(x))
+from nltk.stem import WordNetLemmatizer
+
+from nltk.corpus import wordnet
+
+
+
+wordnet_lemmatizer = WordNetLemmatizer()
+
+def my_function(x):
+
+    return list(dict.fromkeys(x))
+
+
+
+keywords =['Real-time','tracking', 'genomes', 'mechanism','virus','variation','therapeutics','coordinating','dissemination','diagnostic','covid-19','covid19','origin','genetics']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 8 of words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 7: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_1 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_1.append(i)
+
+    
+
+len(task3_1)
+## Results for task 3.1 :
+
+for i in task3_1:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+# Task 3.1:
+
+print(task3_1)
+task3_1_rank = papers_data.iloc[task3_1, :]
+
+task3_1_rank.reset_index(inplace=True,drop=True)
+
+
+
+# Grab the publish year from the meta data file:
+
+meta = meta.rename(columns={"title": "Title"})
+
+for i in range(len(meta)):
+
+    meta.iloc[i, 2] = str(meta.iloc[i, 2]).lower()
+
+    
+
+meta['Title'] = meta['Title'].astype(str) 
+
+task3_1_rank['Title'] = task3_1_rank['Title'].astype(str) 
+
+
+
+task3_1_rank = pd.merge(task3_1_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_1_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+import dateutil.parser as parser
+
+task3_1_rank['publish_time'] = task3_1_rank['publish_time'].apply(lambda x:  str(x).replace('Nov-Dec',''))
+
+task3_1_rank['publish_time'] = task3_1_rank['publish_time'].apply(lambda x:  str(x).replace('Oct 28 Mar-Apr',''))
+
+task3_1_rank['publish_time'] = task3_1_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_1_rank['publish_time'] = pd.to_numeric(task3_1_rank['publish_time'])
+
+task3_1_rank = task3_1_rank.sort_values(by='publish_time', ascending=False)
+
+task3_1_rank.reset_index(inplace=True,drop=True)
+rank = pd.read_csv("/kaggle/input/shanghai-ranking/rank-univ.csv")
+
+del rank['Unnamed: 0']
+
+rank.head(5)
+# Extract the affiliations score to the task's results:
+
+task3_1_rank['Aff_Score'] = 0
+
+for i in range(len(task3_1_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_1_rank.iloc[i, 4]:
+
+            task3_1_rank.iloc[i, 11] = rank.iloc[j, 3]
+task3_1_rank["Ranking_Score"] = task3_1_rank["publish_time"]*0.8 + task3_1_rank["Aff_Score"]*0.2
+task3_1_rank.head(5)
+task3_1_rank = task3_1_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_1_rank.reset_index(inplace=True,drop=True)
+
+task3_1_rank
+## 20 - Ranked Results for task 3.1 :
+
+
+
+for i in range(len(task3_1_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_1_rank.iloc[i, 0])
+
+    print("Title: ", task3_1_rank.iloc[i, 1])
+
+    print("Section: ", task3_1_rank.iloc[i, 2])
+
+    print("Text: ", task3_1_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['Access','geographic', 'temporal', 'diverse','distribution','virus','genomic','strain','covid19','covid-19','circulation','multi-lateral','nagoya','protocol','genetic','evolution','origin']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 9 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 9: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_2 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_2.append(i)
+
+    
+
+len(task3_2)
+## Results for task 3.2 :
+
+for i in task3_2:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+# Task 3.2:
+
+print(task3_2)
+task3_2_rank = papers_data.iloc[task3_2, :]
+
+task3_2_rank.reset_index(inplace=True,drop=True)
+
+
+
+# Grab the publish year from the meta data file:
+
+
+
+task3_2_rank['Title'] = task3_2_rank['Title'].astype(str) 
+
+
+
+task3_2_rank = pd.merge(task3_2_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_2_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+task3_2_rank['publish_time'] = task3_2_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_2_rank['publish_time'] = pd.to_numeric(task3_2_rank['publish_time'])
+
+task3_2_rank = task3_2_rank.sort_values(by='publish_time', ascending=False)
+
+task3_2_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_2_rank['Aff_Score'] = 0
+
+for i in range(len(task3_2_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_2_rank.iloc[i, 4]:
+
+            task3_2_rank.iloc[i, 11] = rank.iloc[j, 3]
+task3_2_rank["Ranking_Score"] = task3_2_rank["publish_time"]*0.8 + task3_2_rank["Aff_Score"]*0.2
+
+task3_2_rank = task3_2_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_2_rank.reset_index(inplace=True,drop=True)
+
+task3_2_rank
+## 20 - Ranked Results for task 2.1.2 :
+
+
+
+for i in range(len(task3_2_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_2_rank.iloc[i, 0])
+
+    print("Title: ", task3_2_rank.iloc[i, 1])
+
+    print("Section: ", task3_2_rank.iloc[i, 2])
+
+    print("Text: ", task3_2_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['evidence', 'farmers','infected','role','covid19','covid-19','virus','origin','genetic','origin','evoluion','epidemic']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 9 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 8: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_3_1 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_3_1.append(i)
+
+    
+
+len(task3_3_1)
+## Results for task 3.1.1 :
+
+for i in task3_3_1:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+# Task 3.3.1:
+
+print(task3_3_1)
+task3_3_1_rank = papers_data.iloc[task3_3_1, :]
+
+task3_3_1_rank.reset_index(inplace=True,drop=True)
+
+
+
+# Grab the publish year from the meta data file:
+
+task3_3_1_rank['Title'] = task3_3_1_rank['Title'].astype(str) 
+
+
+
+task3_3_1_rank = pd.merge(task3_3_1_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_3_1_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+task3_3_1_rank['publish_time'] = task3_3_1_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_3_1_rank['publish_time'] = pd.to_numeric(task3_3_1_rank['publish_time'])
+
+task3_3_1_rank = task3_3_1_rank.sort_values(by='publish_time', ascending=False)
+
+task3_3_1_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_3_1_rank['Aff_Score'] = 0
+
+for i in range(len(task3_3_1_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_3_1_rank.iloc[i, 4]:
+
+            task3_3_1_rank.iloc[i, 11] = rank.iloc[j, 3]
+task3_3_1_rank["Ranking_Score"] = task3_3_1_rank["publish_time"]*0.8 + task3_3_1_rank["Aff_Score"]*0.2
+
+task3_3_1_rank = task3_3_1_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_3_1_rank.reset_index(inplace=True,drop=True)
+
+task3_3_1_rank
+## 20 - Ranked Results for task 2.1.3 :
+
+
+
+for i in range(len(task3_3_1_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_3_1_rank.iloc[i, 0])
+
+    print("Title: ", task3_3_1_rank.iloc[i, 1])
+
+    print("Section: ", task3_3_1_rank.iloc[i, 2])
+
+    print("Text: ", task3_3_1_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['surveillance', 'wildlife','livestock','farms','sars','cov','origin','genetic','evolution','sars-cov-2','coronavirus','southeast','asia']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 8 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 7: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_3_2 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_3_2.append(i)
+
+    
+
+len(task3_3_2)
+## Results for task 3.3.2 :
+
+for i in task3_3_2:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+# Task 3.3.2:
+
+print(task3_3_2)
+task3_3_2_rank = papers_data.iloc[task3_3_2, :]
+
+task3_3_2_rank.reset_index(inplace=True,drop=True)
+
+
+
+# Grab the publish year from the meta data file:
+
+task3_3_2_rank['Title'] = task3_3_2_rank['Title'].astype(str) 
+
+
+
+task3_3_2_rank = pd.merge(task3_3_2_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_3_2_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+task3_3_2_rank['publish_time'] = task3_3_2_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_3_2_rank['publish_time'] = pd.to_numeric(task3_3_2_rank['publish_time'])
+
+task3_3_2_rank = task3_3_2_rank.sort_values(by='publish_time', ascending=False)
+
+task3_3_2_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_3_2_rank['Aff_Score'] = 0
+
+for i in range(len(task3_3_2_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_3_2_rank.iloc[i, 4]:
+
+            task3_3_2_rank.iloc[i, 11] = rank.iloc[j, 3]
+
+            
+
+task3_3_2_rank["Ranking_Score"] = task3_3_2_rank["publish_time"]*0.8 + task3_3_2_rank["Aff_Score"]*0.2
+
+task3_3_2_rank = task3_3_2_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_3_2_rank.reset_index(inplace=True,drop=True)
+
+task3_3_2_rank
+## 20 - Ranked Results for task 3.3.2 :
+
+
+
+for i in range(len(task3_3_2_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_3_2_rank.iloc[i, 0])
+
+    print("Title: ", task3_3_2_rank.iloc[i, 1])
+
+    print("Section: ", task3_3_2_rank.iloc[i, 2])
+
+    print("Text: ", task3_3_2_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['experimental', 'infection','test','host','range','pathogen''covid-19','covid19','origin','genetic','evolution']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 11 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 10: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_3_3 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_3_3.append(i)
+
+    
+
+len(task3_3_3)
+## Results for task 3.3.3 :
+
+for i in task3_3_3:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+# Task 3.3.3 
+
+print(task3_3_3)
+task3_3_3_rank = papers_data.iloc[task3_3_3, :]
+
+task3_3_3_rank.reset_index(inplace=True,drop=True)
+
+
+
+# Grab the publish year from the meta data file:
+
+task3_3_3_rank['Title'] = task3_3_3_rank['Title'].astype(str) 
+
+
+
+task3_3_3_rank = pd.merge(task3_3_3_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_3_3_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+task3_3_3_rank['publish_time'] = task3_3_3_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_3_3_rank['publish_time'] = pd.to_numeric(task3_3_3_rank['publish_time'])
+
+task3_3_3_rank = task3_3_3_rank.sort_values(by='publish_time', ascending=False)
+
+task3_3_3_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_3_3_rank['Aff_Score'] = 0
+
+for i in range(len(task3_3_3_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_3_3_rank.iloc[i, 4]:
+
+            task3_3_3_rank.iloc[i, 11] = rank.iloc[j, 3]
+
+            
+
+task3_3_3_rank["Ranking_Score"] = task3_3_3_rank["publish_time"]*0.8 + task3_3_3_rank["Aff_Score"]*0.2
+
+task3_3_3_rank = task3_3_3_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_3_3_rank.reset_index(inplace=True,drop=True)
+
+task3_3_3_rank
+## 20 - Ranked Results for task 2.2 :
+
+
+
+for i in range(len(task3_3_3_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_3_3_rank.iloc[i, 0])
+
+    print("Title: ", task3_3_3_rank.iloc[i, 1])
+
+    print("Section: ", task3_3_3_rank.iloc[i, 2])
+
+    print("Text: ", task3_3_3_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['Animal', 'host','evidence','spill-over','human','genetic','origin','evolution','covid19','covid-19']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 8 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 7: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_4 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_4.append(i)
+
+    
+
+len(task3_4)
+## Results for task 3.4:
+
+for i in task3_4:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+# Task 3.4:
+
+print(task3_4)
+task3_4_rank = papers_data.iloc[task3_4, :]
+
+task3_4_rank.reset_index(inplace=True,drop=True)
+
+
+
+task3_4_rank['Title'] = task3_4_rank['Title'].astype(str) 
+
+
+
+task3_4_rank = pd.merge(task3_4_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_4_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+task3_4_rank['publish_time'] = task3_4_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_4_rank['publish_time'] = pd.to_numeric(task3_4_rank['publish_time'])
+
+task3_4_rank = task3_4_rank.sort_values(by='publish_time', ascending=False)
+
+task3_4_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_4_rank['Aff_Score'] = 0
+
+for i in range(len(task3_4_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_4_rank.iloc[i, 4]:
+
+            task3_4_rank.iloc[i, 11] = rank.iloc[j, 3]
+
+            
+
+task3_4_rank["Ranking_Score"] = task3_4_rank["publish_time"]*0.8 + task3_4_rank["Aff_Score"]*0.2
+
+task3_4_rank = task3_4_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_4_rank.reset_index(inplace=True,drop=True)
+
+task3_4_rank
+## 20 - Ranked Results for task 3.4 :
+
+
+
+for i in range(len(task3_4_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_4_rank.iloc[i, 0])
+
+    print("Title: ", task3_4_rank.iloc[i, 1])
+
+    print("Section: ", task3_4_rank.iloc[i, 2])
+
+    print("Text: ", task3_4_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['socioeconomic', 'behavior','risk','covid19','covid-19','risk','factor','spill-over']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 5 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 4: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_5 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_5.append(i)
+
+    
+
+len(task3_5)
+## Results for task 3.5 :
+
+for i in task3_5:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+task3_5_rank = papers_data.iloc[task3_5, :]
+
+task3_5_rank.reset_index(inplace=True,drop=True)
+
+
+
+task3_5_rank['Title'] = task3_5_rank['Title'].astype(str) 
+
+
+
+task3_5_rank = pd.merge(task3_5_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_5_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+task3_5_rank['publish_time'] = task3_5_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_5_rank['publish_time'] = pd.to_numeric(task3_5_rank['publish_time'])
+
+task3_5_rank = task3_5_rank.sort_values(by='publish_time', ascending=False)
+
+task3_5_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_5_rank['Aff_Score'] = 0
+
+for i in range(len(task3_5_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_5_rank.iloc[i, 4]:
+
+            task3_5_rank.iloc[i, 11] = rank.iloc[j, 3]
+
+            
+
+task3_5_rank["Ranking_Score"] = task3_5_rank["publish_time"]*0.8 + task3_5_rank["Aff_Score"]*0.2
+
+task3_5_rank = task3_5_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_5_rank.reset_index(inplace=True,drop=True)
+
+task3_5_rank
+## 20 - Ranked Results for task 2.4 :
+
+
+
+for i in range(len(task3_5_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_5_rank.iloc[i, 0])
+
+    print("Title: ", task3_5_rank.iloc[i, 1])
+
+    print("Section: ", task3_5_rank.iloc[i, 2])
+
+    print("Text: ", task3_5_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+keywords =['sustainable', 'risk','reduction','strategies','origin','genetic', 'covid19','covid-19','evolution']
+
+kw = []
+
+for i in keywords:
+
+    kw.append(wordnet_lemmatizer.lemmatize(i))
+
+         
+
+# Gett synonyms: 
+
+synonyms = []
+
+for k in kw:
+
+    for syn in wordnet.synsets(k):
+
+        for l in syn.lemmas():
+
+            synonyms.append(wordnet_lemmatizer.lemmatize(l.name()))
+
+for i in synonyms:
+
+    kw.append(i)
+
+    
+
+kw = [ x for x in kw if "_" not in x ]
+
+kw = my_function(kw)
+
+
+
+print(kw)   
+# At least 6 words in common
+
+def common_member(a, b): 
+
+    a_set = set(a) 
+
+    b_set = set(b) 
+
+    if len(a_set.intersection(b_set)) > 5: 
+
+        return(True)  
+
+    return(False)    
+
+  
+
+task3_6 =[]
+
+for i in range(len(papers_data)):
+
+    if common_member(kw, papers_data.iloc[i, 8]):
+
+        task3_6.append(i)
+
+    
+
+len(task3_6)
+## Results for task 3.6 :
+
+for i in task3_6:
+
+    print("\n")
+
+    print("PaperID: ", papers_data.iloc[i, 0])
+
+    print("Title: ", papers_data.iloc[i, 1])
+
+    print("Section: ", papers_data.iloc[i, 2])
+
+    print("Text: ", papers_data.iloc[i, 3])  
+
+    print("\n")
+task3_6_rank = papers_data.iloc[task3_6, :]
+
+task3_6_rank.reset_index(inplace=True,drop=True)
+
+
+
+task3_6_rank['Title'] = task3_6_rank['Title'].astype(str) 
+
+
+
+task3_6_rank = pd.merge(task3_6_rank, meta[['Title','publish_time']], left_on='Title', right_on='Title')
+
+task3_6_rank.dropna(inplace=True)
+
+
+
+# Extract the year from the string publish time
+
+import dateutil.parser as parser
+
+task3_6_rank['publish_time'] = task3_6_rank['publish_time'].apply(lambda x:  str(x).replace('Winter',''))
+
+task3_6_rank['publish_time'] = task3_6_rank['publish_time'].apply(lambda x: parser.parse(x).year)
+
+
+
+# Rank the task's results by time (Freshness)
+
+task3_6_rank['publish_time'] = pd.to_numeric(task3_6_rank['publish_time'])
+
+task3_6_rank = task3_6_rank.sort_values(by='publish_time', ascending=False)
+
+task3_6_rank.reset_index(inplace=True,drop=True)
+# Extract the affiliations score to the task's results:
+
+task3_6_rank['Aff_Score'] = 0
+
+for i in range(len(task3_6_rank)):
+
+    for j in range(len(rank)):
+
+        if rank.iloc[j, 1] in task3_6_rank.iloc[i, 4]:
+
+            task3_6_rank.iloc[i, 11] = rank.iloc[j, 3]
+
+            
+
+task3_6_rank["Ranking_Score"] = task3_6_rank["publish_time"]*0.8 + task3_6_rank["Aff_Score"]*0.2
+
+task3_6_rank = task3_6_rank.sort_values(by='Ranking_Score', ascending=False)
+
+task3_6_rank.reset_index(inplace=True,drop=True)
+
+task3_6_rank
+## 20 - Ranked Results for task 3.6 :
+
+
+
+for i in range(len(task3_6_rank)):
+
+    print("\n")
+
+    print("PaperID: ", task3_6_rank.iloc[i, 0])
+
+    print("Title: ", task3_6_rank.iloc[i, 1])
+
+    print("Section: ", task3_6_rank.iloc[i, 2])
+
+    print("Text: ", task3_6_rank.iloc[i, 3])  
+
+    print("\n")
+
+    if i == 19:
+
+        break
+task3_3_1_rank.to_csv("task3_3_1_rank.csv")
+
+task3_3_2_rank.to_csv("task3_3_2_rank.csv")
+
+task3_3_3_rank.to_csv("task3_3_3_rank.csv")
+
+
+
+task3_1_rank.to_csv("task3_1_rank.csv")
+
+task3_2_rank.to_csv("task3_2_rank.csv")
+
+task3_4_rank.to_csv("task3_4_rank.csv")
+
+task3_5_rank.to_csv("task3_5_rank.csv")
+
+task3_6_rank.to_csv("task3_6_rank.csv")

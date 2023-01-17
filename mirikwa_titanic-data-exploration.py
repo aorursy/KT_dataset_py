@@ -1,0 +1,37 @@
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import seaborn as sns
+train_data = pd.read_csv("../input/train.csv")
+test_data = pd.read_csv("../input/test.csv")
+train_data.columns
+test_data.columns
+train_data.shape
+test_data.shape
+train_data.info()
+train_data.describe()
+sns.distplot(train_data['Pclass'], bins=3, kde=False)
+sns.distplot(train_data['Fare'], bins=50, kde=False)
+sns.distplot(train_data['Age'].dropna(), kde=False)
+sns.distplot(train_data['SibSp'], bins=6, kde=False)
+sns.distplot(train_data['Parch'], bins=6, kde=False)
+sns.distplot(train_data['Survived'], bins=2, kde=False)
+sns.boxplot(train_data['Pclass'])
+sns.boxplot(train_data['Fare'])
+sns.boxplot(train_data['Age'])
+sns.boxplot(train_data['Parch'])
+sns.boxplot(train_data['SibSp'])
+sns.boxplot(train_data['Survived'])
+train_data.select_dtypes(include=['object']).head()
+sns.countplot(x="Sex", data=train_data)
+sns.countplot(x="Embarked", data=train_data)
+train_data.plot.scatter(x="Fare", y="Pclass")
+train_data.plot.scatter(x="Fare", y="Age")
+train_data.plot.scatter(x="Fare", y="Parch")
+train_data.plot.scatter(x="Age", y="Parch")
+train_data.plot.scatter(x="Fare", y="SibSp")
+sns.countplot(x=train_data["Pclass"], hue=train_data["Survived"])
+sns.countplot(x=train_data["Parch"], hue=train_data["Survived"])
+sns.countplot(x=train_data["SibSp"], hue=train_data["Survived"])
+sns.countplot(x=train_data["Sex"], hue=train_data["Survived"])
+sns.countplot(x=train_data["Embarked"], hue=train_data["Survived"])
+train_data.isnull().sum()

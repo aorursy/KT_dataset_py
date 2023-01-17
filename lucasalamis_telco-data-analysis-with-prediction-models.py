@@ -1,0 +1,98 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+df = pd.read_csv('../input/WA_Fn-UseC_-Telco-Customer-Churn.csv')
+df.head()
+df.info()
+df.describe()
+df['Contract'].value_counts().plot(kind='bar')
+df['Contract'].value_counts()
+df['PaymentMethod'].value_counts().plot(kind='bar')
+df['PaymentMethod'].value_counts()
+df.groupby(by='PaymentMethod')['MonthlyCharges'].mean().plot(kind='bar')
+df.dropna(inplace=True)
+df['TotalCharges'] = df['TotalCharges'].convert_objects(convert_numeric=True)
+df.groupby(by='PaymentMethod')['TotalCharges'].mean().plot(kind='bar')
+df.groupby(by='PaymentMethod')['TotalCharges'].mean()
+pd.set_option('display.max_columns', 100)
+plt.figure(figsize=(12,16))
+plt.subplot(4, 2, 1)
+sns.countplot(x='gender', data=df, hue='Partner')
+plt.subplot(4, 2, 2)
+sns.countplot(x='gender', data=df, hue='Dependents')
+plt.subplot(4, 2, 3)
+sns.countplot(x='gender', data=df, hue='SeniorCitizen')
+plt.subplot(4, 2, 4)
+sns.countplot(x='gender', data=df)
+df.groupby(by='Contract')['Churn'].value_counts().to_frame()
+df[(df['Churn']=='Yes')&(df['Contract']=='Month-to-month')]['Churn'].count()/df[df['Churn']=='Yes']['Churn'].count()*100
+df[(df['Churn']=='Yes')&(df['Contract']=='One year')]['Churn'].count()/df[df['Churn']=='Yes']['Churn'].count()*100
+df[(df['Churn']=='Yes')&(df['Contract']=='Two year')]['Churn'].count()/df[df['Churn']=='Yes']['Churn'].count()*100
+plt.figure(figsize=(22,34))
+plt.subplot(6, 2, 1)
+sns.countplot(x='Churn', data=df, hue='PhoneService')
+plt.subplot(6, 2, 2)
+sns.countplot(x='Churn', data=df, hue='InternetService')
+plt.subplot(6, 2, 3)
+sns.countplot(x='Churn', data=df, hue='StreamingTV')
+plt.subplot(6, 2, 4)
+sns.countplot(x='Churn', data=df, hue='PaymentMethod')
+plt.rcParams['legend.fontsize'] = 10
+plt.subplot(6, 2, 5)
+sns.countplot(x='Churn', data=df, hue='SeniorCitizen')
+plt.subplot(6, 2, 6)
+sns.countplot(x='Churn', data=df, hue='Dependents')
+sns.barplot(x='TotalCharges', y='Churn', data=df)
+df['MonthlyCharges'].describe()
+df_cat = df.drop(columns=['customerID','MonthlyCharges','TotalCharges', 'tenure'])
+df_cat.columns.values.tolist()
+df_cat.head()
+from sklearn.preprocessing import LabelEncoder
+df_cat = df_cat.apply(LabelEncoder().fit_transform)
+df_cat.head()
+from sklearn.model_selection import train_test_split
+X = df_cat.drop(columns=['Churn'])
+y = df_cat['Churn']
+X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=101, test_size=0.30)
+from sklearn.ensemble import RandomForestClassifier
+rf = RandomForestClassifier()
+rf.fit(X_train, y_train)
+predrf = rf.predict(X_test)
+from sklearn.metrics import classification_report
+print(classification_report(y_test, predrf))
+rf.score(X_test,y_test)
+from sklearn.naive_bayes import GaussianNB
+gnb = GaussianNB()
+prob = gnb.fit(X_train, y_train)
+prednb = gnb.predict(X_test)
+print(classification_report(y_test, prednb))
+gnb.score(X_test,y_test)
+from sklearn.linear_model import LogisticRegression
+lr = LogisticRegression()
+lr.fit(X_train,y_train)
+predlr = lr.predict(X_test)
+print(classification_report(y_test, predlr))
+lr.score(X_test,y_test)
+from sklearn.neighbors import KNeighborsClassifier
+kn = KNeighborsClassifier()
+kn.fit(X_train,y_train)
+predkn = kn.predict(X_test)
+kn.score(X_test,y_test)
+print(classification_report(y_test, predkn))
+from sklearn.svm import SVC
+sv = SVC()
+sv.fit(X_train, y_train)
+predsv = sv.predict(X_test)
+print(classification_report(y_test, predsv))
+sv.score(X_test,y_test)
+df.dropna(inplace=True)
+plt.figure(figsize=(14,16))
+plt.subplot(4,2,1)
+sns.distplot(df['tenure'], kde=False, bins=70)
+plt.subplot(4,2,2)
+sns.distplot(df['MonthlyCharges'], kde=False, bins=70)
+plt.subplot(4,2,3)
+sns.distplot(df['TotalCharges'], kde=False, bins=70)
+df['TotalCharges'].max()-df['TotalCharges'].min()

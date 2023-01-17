@@ -1,0 +1,27 @@
+import pandas as pd
+import seaborn as sns
+import numpy as np
+
+import sys
+sys.path.append('../input/advanced-pandas-exercises/')
+from indexing_selecting_assigning import *
+
+reviews = pd.read_csv("../input/wine-reviews/winemag-data-130k-v2.csv", index_col=0)
+pd.set_option("display.max_rows", 5)
+reviews.head()
+check_q1(pd.DataFrame())
+check_q1(reviews['description'])
+check_q2(reviews.loc[0,'description'])
+check_q3(reviews.iloc[0,:])
+check_q4(reviews.loc[0:9,'description'])
+check_q5(reviews.loc[[1,2,3,5,8],:])
+check_q6(reviews.loc[[0,1,10,100],['country','province','region_1','region_2']])
+check_q7(reviews.loc[0:100,['country','variety']])
+check_q8(reviews[reviews.country == 'Italy'])
+check_q9(reviews[~reviews['region_2'].isna()])
+check_q10(reviews.points)
+check_q11(reviews.loc[0:999,'points'])
+check_q12(reviews.loc[reviews.shape[0]-1000:,'points'])
+check_q13(reviews[reviews.country=='Italy']['points'])
+rf = reviews.query('((country == "Italy") | (country == "France")) & (points >= 90)')
+check_q14(rf.loc[:,'country'])

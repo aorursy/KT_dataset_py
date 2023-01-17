@@ -1,0 +1,80 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+df=pd.read_csv('../input/house-prices-advanced-regression-techniques/train.csv',index_col='Id')
+df
+y=df.SalePrice
+X=df.drop('SalePrice',axis=1)
+X_num=X.select_dtypes(exclude=['object'])
+parameters={'n_estemator':list(range(100,201,100)),
+
+            'learning rate':  [x / 100 for x in range(5, 10, 1)], 
+
+    'max_depth': list(range(6, 20, 10))}
+from sklearn.model_selection import GridSearchCV
+
+from xgboost import XGBRegressor
+
+gsearch = GridSearchCV(estimator=XGBRegressor(),
+
+                       param_grid = parameters, 
+
+                       scoring='neg_mean_absolute_error',
+
+                       n_jobs=4,cv=5, verbose=7)
+gsearch.fit(X_num, y)
+best_n_estimators = gsearch.best_params_.get('n_estemator')
+
+print (best_n_estimators)
+best_learning_rate = gsearch.best_params_.get('learning rate')
+
+best_learning_rate
+best_max_depth = gsearch.best_params_.get('max_depth')
+
+best_max_depth
+final_model = XGBRegressor(n_estimators=best_n_estimators, 
+
+                          learning_rate=best_learning_rate, 
+
+                          max_depth=best_max_depth)
+X_num
+X_num.dtypes
+final_model.fit(X_num, y)
+Xtest=pd.read_csv('../input/house-prices-advanced-regression-techniques/test.csv',index_col='Id')
+X_test=Xtest.select_dtypes(exclude=['object'])
+preds_test = final_model.predict(X_test)
+output = pd.DataFrame({'Id': X_test.index,
+
+                       'SalePrice': preds_test})
+
+output.to_csv('submission.csv', index=False)

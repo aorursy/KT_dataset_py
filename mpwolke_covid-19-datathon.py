@@ -1,0 +1,125 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import unicodedata
+
+import matplotlib.pyplot as plt
+
+import plotly.express as px
+
+import seaborn as sns
+
+plt.style.use('fivethirtyeight')
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+df=pd.read_csv("../input/covid-datathon/time_series_covid_19_deaths_US.csv")
+
+df.head()
+ax = df.groupby('Province_State')['FIPS'].mean().sort_values(ascending=True).plot(kind='barh', figsize=(12,8),
+
+                                                                                   title='Mean Fips by State')
+
+plt.xlabel('Fips')
+
+plt.ylabel('Province_State')
+
+plt.show()
+g = sns.lmplot(x="Long_", y="Lat", data=df,
+
+           fit_reg=False, scatter_kws={"s": 30}, hue='Country_Region', height=10)
+
+plt.title('Deaths by Region')
+
+plt.show()
+plt.figure(figsize=(20,12))
+
+g = sns.scatterplot(x='Long_', y='Lat', data=df, hue='Province_State')
+
+g.legend(loc='center left', bbox_to_anchor=(1.25, 0.5), ncol=1);
+df.groupby('Province_State')['4/12/20'].max()
+df.groupby('Province_State')['4/21/20'].max()
+df[(df['Province_State'] == 'Washington') & (df['4/21/20'] == 360)]
+df[(df['Province_State'] == 'Alabama') & (df['4/21/20'] == 37)]
+plt.figure(figsize=(20,12))
+
+g = sns.scatterplot(x='Long_', y='Lat', data=df, hue='Province_State')
+
+g.legend(loc='center left', bbox_to_anchor=(1.25, 0.5), ncol=1);
+
+#this annotate has been copy from this stackoverflow page
+
+#https://stackoverflow.com/questions/39147492/annotate-seaborn-factorplot
+
+plt.annotate('Washington', xy=(-121.834613, 47.491379), xytext=(-121.834613, 47.491379),
+
+             arrowprops=dict(facecolor='red', shrink=0.05, headwidth=8))
+
+plt.annotate('Alabama', xy=(-88.208424, 30.784723), xytext=(-88.208424, 30.784723),
+
+             arrowprops=dict(facecolor='red', shrink=0.05, headwidth=8))
+
+plt.show()
+ax = df.groupby('Province_State')['code3', '4/21/20'].sum().plot(kind='bar', rot=45, figsize=(12,6), logy=True,
+
+                                                                 title='Deaths 4/21/20')
+
+plt.xlabel('State')
+
+plt.ylabel('Number of Deaths 4/21/20')
+
+plt.show()
+ax = df.groupby('Province_State')['code3', '4/21/20'].sum().plot(kind='barh', figsize=(14,8),
+
+                                                                 title='Deaths by Covid19 4/21/2020', logx=True, linewidth=3)
+
+plt.xlabel('Deaths 4/21/2020')
+
+plt.ylabel('State')
+
+plt.show()
+fig_px = px.scatter_mapbox(df, lat="Lat", lon="Long_",
+
+                           hover_name="Province_State",
+
+                           zoom=11, height=300)
+
+fig_px.update_layout(mapbox_style="open-street-map",
+
+                     margin={"r":0,"t":0,"l":0,"b":0})
+
+
+
+fig_px.show()
+fig_px.update_traces(marker={"size": [10 for x in df]})
+fig = px.bar(df, x= "Province_State", y= "4/21/20", color_discrete_sequence=['crimson'],)
+
+fig.show()

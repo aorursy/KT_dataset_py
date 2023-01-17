@@ -1,0 +1,58 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+
+
+import os
+
+print(os.listdir("../input"))
+
+
+
+# Any results you write to the current directory are saved as output.
+iris = pd.read_csv('../input/Iris.csv')
+
+iris.head()
+iris.info()
+import seaborn as sns
+
+sns.pairplot(data=iris, hue='Species', palette='Set2')
+
+from sklearn.model_selection import train_test_split
+
+x = iris.iloc[:, 1:-1]
+
+y = iris.iloc[:, 5]
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
+
+print(x_train.shape, y_train.shape)
+from sklearn.svm import SVC
+
+model=SVC()
+
+model.fit(x_train, y_train)
+pred = model.predict(x_test)
+
+print(pred[:5])
+
+print(y_test[:5])
+from sklearn.metrics import confusion_matrix, classification_report
+
+print(confusion_matrix(y_test, pred))
+print(classification_report(y_test, pred))

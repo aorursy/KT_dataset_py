@@ -1,0 +1,306 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+import seaborn as sns
+aisles = pd.read_csv('../input/aisles.csv')
+departments = pd.read_csv('../input/departments.csv')
+order_products = pd.read_csv('../input/order_products__prior.csv')
+orders = pd.read_csv('../input/orders.csv')
+products = pd.read_csv('../input/products.csv')
+aisles.info()
+aisles.head()
+departments.info()
+departments.head()
+order_products.info()
+order_products.describe()
+order_products.head(10)
+orders.info()
+orders.describe()
+orders.head()
+products.info()
+products.describe()
+products.head()
+user_order = orders[['user_id','order_id']]
+user_order.head()
+user_order.describe()
+order_products_ex = order_products[['order_id','product_id']]
+order_products_ex.head()
+user_products = pd.merge(user_order,order_products_ex,left_on='order_id',right_on='order_id')
+user_products.tail(10)
+user_products_pure = user_products[['user_id','product_id']]
+user_products_pure.head(10)
+user_products.info()
+user_products_cross = pd.crosstab(user_products_pure[:1000000]['user_id'],user_products_pure[:1000000]['product_id'])
+user_products_cross.tail()
+#sns.clustermap(user_products_cross)
+from scipy.cluster.hierarchy import linkage, dendrogram,fcluster
+linkage_result = linkage(user_products_cross, method='ward',metric='euclidean')
+threshold = 0.5 * np.max(linkage_result[:,2])
+#visualise hyerarchical clustering
+plt.figure(num=None, figsize=(16,9),dpi=300, facecolor='w', edgecolor='k')
+dendrogram(linkage_result,color_threshold=threshold)
+plt.show
+#get the result of clustering
+user_clustered_5 = fcluster(linkage_result, threshold, criterion='distance')
+user_clustered_5
+len(user_clustered_5)
+user_clustered_5.max()
+user_tagged_5 = pd.DataFrame(data=user_clustered_5,index=user_products_cross.index)
+user_type_5_1=list(user_tagged_5[user_tagged_5[0]==1].index)
+user_type_5_2=list(user_tagged_5[user_tagged_5[0]==2].index)
+user_type_5_3=list(user_tagged_5[user_tagged_5[0]==3].index)
+user_type_5_4=list(user_tagged_5[user_tagged_5[0]==4].index)
+user_type_5_5=list(user_tagged_5[user_tagged_5[0]==5].index)
+user_type_5_6=list(user_tagged_5[user_tagged_5[0]==6].index)
+print('Number of Users for each Type')
+print('type1:{0} '.format(len(user_type_5_1)))
+print('type2:{0} '.format(len(user_type_5_2)))
+print('type3:{0} '.format(len(user_type_5_3)))
+print('type4:{0} '.format(len(user_type_5_4)))
+print('type5:{0} '.format(len(user_type_5_5)))
+print('type6:{0} '.format(len(user_type_5_6)))
+user_pid_pname =pd.merge(user_products_pure,products, left_on='product_id', right_on='product_id').dropna()
+user_pid_pname =pd.merge(user_pid_pname,aisles, left_on='aisle_id', right_on='aisle_id')
+user_pid_pname =pd.merge(user_pid_pname,departments, left_on='department_id', right_on='department_id')
+user_pid_pname.tail(10)
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname['product_name'],order=user_pid_pname['product_name'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 products(Total)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname['aisle'],order=user_pid_pname['aisle'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 aisles(Total)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname['department'],order=user_pid_pname['department'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Departments Countplot(Total)',fontdict={'fontsize':18})
+plt.show()
+user_pid_pname_selected =user_pid_pname[user_pid_pname['user_id']<6468]
+user_pid_pname_type_5_1 = pd.DataFrame(columns=user_pid_pname.columns)
+for each in user_type_5_1:
+    selected = user_pid_pname_selected[user_pid_pname_selected['user_id']==each]
+    user_pid_pname_type_5_1 = user_pid_pname_type_5_1.append(selected)
+user_pid_pname_type_5_1.head()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_1['product_name'],order=user_pid_pname_type_5_1['product_name'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 products(Type1)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_1['aisle'],order=user_pid_pname_type_5_1['aisle'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 aisles(Type1)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_1['department'],order=user_pid_pname_type_5_1['department'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Departments Countplot(Type1)',fontdict={'fontsize':18})
+plt.show()
+user_pid_pname_type_5_2 = pd.DataFrame(columns=user_pid_pname.columns)
+for each in user_type_5_2:
+    selected = user_pid_pname_selected[user_pid_pname_selected['user_id']==each]
+    user_pid_pname_type_5_2 = user_pid_pname_type_5_2.append(selected)
+user_pid_pname_type_5_2.head()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_2['product_name'],order=user_pid_pname_type_5_2['product_name'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 products(Type2)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_2['aisle'],order=user_pid_pname_type_5_2['aisle'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 aisles(Type2)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_2['department'],order=user_pid_pname_type_5_2['department'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Departments Countplot(Type2)',fontdict={'fontsize':18})
+plt.show()
+user_pid_pname_type_5_3 = pd.DataFrame(columns=user_pid_pname.columns)
+for each in user_type_5_3:
+    selected = user_pid_pname_selected[user_pid_pname_selected['user_id']==each]
+    user_pid_pname_type_5_3 = user_pid_pname_type_5_3.append(selected)
+user_pid_pname_type_5_3.head()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_3['product_name'],order=user_pid_pname_type_5_3['product_name'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 products(Type3)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_3['aisle'],order=user_pid_pname_type_5_3['aisle'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 aisles(Type3)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_3['department'],order=user_pid_pname_type_5_3['department'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Departments Countplot(Type3)',fontdict={'fontsize':18})
+plt.show()
+user_pid_pname_type_5_4 = pd.DataFrame(columns=user_pid_pname.columns)
+for each in user_type_5_4:
+    selected = user_pid_pname_selected[user_pid_pname_selected['user_id']==each]
+    user_pid_pname_type_5_4 = user_pid_pname_type_5_4.append(selected)
+user_pid_pname_type_5_4.head()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_4['product_name'],order=user_pid_pname_type_5_4['product_name'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 products(Type4)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_4['aisle'],order=user_pid_pname_type_5_4['aisle'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 aisles(Type4)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_4['department'],order=user_pid_pname_type_5_4['department'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Departments Countplot(Type4)',fontdict={'fontsize':18})
+plt.show()
+user_pid_pname_type_5_5 = pd.DataFrame(columns=user_pid_pname.columns)
+for each in user_type_5_5:
+    selected = user_pid_pname_selected[user_pid_pname_selected['user_id']==each]
+    user_pid_pname_type_5_5 = user_pid_pname_type_5_5.append(selected)
+user_pid_pname_type_5_5.head()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_5['product_name'],order=user_pid_pname_type_5_5['product_name'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 products(Type5)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_5['aisle'],order=user_pid_pname_type_5_5['aisle'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Best 30 aisles(Type5)',fontdict={'fontsize':18})
+plt.show()
+sns.set()
+plt.figure(figsize=(16, 9))
+g = sns.countplot(user_pid_pname_type_5_5['department'],order=user_pid_pname_type_5_5['department'].value_counts().iloc[:30].index)
+plt.xticks(rotation=90)
+g.set_title('Departments Countplot(Type5)',fontdict={'fontsize':18})
+plt.show()
+user_order_products_pure =pd.merge(user_products,products, left_on='product_id', right_on='product_id').dropna()
+user_order_products_pure =pd.merge(user_order_products_pure,aisles, left_on='aisle_id', right_on='aisle_id')
+user_order_products_pure =pd.merge(user_order_products_pure,departments, left_on='department_id', right_on='department_id')
+for each in user_type_5_1:
+    user_order_products_pure.loc[user_order_products_pure['user_id']==each,'type']=1
+for each in user_type_5_2:
+    user_order_products_pure.loc[user_order_products_pure['user_id']==each,'type']=2
+for each in user_type_5_3:
+    user_order_products_pure.loc[user_order_products_pure['user_id']==each,'type']=3
+for each in user_type_5_4:
+    user_order_products_pure.loc[user_order_products_pure['user_id']==each,'type']=4
+for each in user_type_5_5:
+    user_order_products_pure.loc[user_order_products_pure['user_id']==each,'type']=5
+user_order_products_pure = user_order_products_pure.dropna()
+user_order_products_pure.head()
+user_order_products_pure =pd.merge(user_order_products_pure,orders,left_on='order_id', right_on='order_id')
+user_order_products_pure.drop('user_id_y',axis=1,inplace=True)
+order_products[order_products['order_id']==40]
+order_summary = user_order_products_pure.groupby('order_id').mean()
+day_hour_summary = pd.crosstab(order_summary['order_dow'],order_summary['order_hour_of_day'])
+day_hour_summary
+day_hour_summary_1 =  order_summary[order_summary['type']==1]
+day_hour_summary_1 =  pd.crosstab(day_hour_summary_1['order_dow'],day_hour_summary_1['order_hour_of_day'])
+day_hour_summary_2 =  order_summary[order_summary['type']==2]
+day_hour_summary_2 =  pd.crosstab(day_hour_summary_2['order_dow'],day_hour_summary_2['order_hour_of_day'])
+day_hour_summary_3 =  order_summary[order_summary['type']==3]
+day_hour_summary_3 =  pd.crosstab(day_hour_summary_3['order_dow'],day_hour_summary_3['order_hour_of_day'])
+day_hour_summary_4 =  order_summary[order_summary['type']==4]
+day_hour_summary_4 =  pd.crosstab(day_hour_summary_4['order_dow'],day_hour_summary_4['order_hour_of_day'])
+day_hour_summary_5 =  order_summary[order_summary['type']==5]
+day_hour_summary_5 =  pd.crosstab(day_hour_summary_5['order_dow'],day_hour_summary_5['order_hour_of_day'])
+fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(18, 10))
+ax1 = sns.heatmap(day_hour_summary,cmap='Oranges',ax=axes[0,0])
+ax1.set_title('Heatmap(Total)',fontdict={'fontsize':14})
+ax2 = sns.heatmap(day_hour_summary_1,cmap='Blues',ax=axes[0,1])
+ax2.set_title('Heatmap(Type1)',fontdict={'fontsize':14})
+ax3 = sns.heatmap(day_hour_summary_2,cmap='Blues',ax=axes[0,2])
+ax3.set_title('Heatmap(Type2)',fontdict={'fontsize':14})
+ax4 = sns.heatmap(day_hour_summary_3,cmap='Blues',ax=axes[1,0])
+ax4.set_title('Heatmap(Type3)',fontdict={'fontsize':14})
+ax5 = sns.heatmap(day_hour_summary_4,cmap='Blues',ax=axes[1,1])
+ax5.set_title('Heatmap(Type4)',fontdict={'fontsize':14})
+ax6 = sns.heatmap(day_hour_summary_5,cmap='Blues',ax=axes[1,2])
+ax6.set_title('Heatmap(Type5)',fontdict={'fontsize':14})
+user_order_products_pure
+product_type_pivot=pd.crosstab(user_order_products_pure['product_name'],user_order_products_pure['type'],normalize='columns',margins=True)
+product_type_pivot=product_type_pivot.sort_values('All',ascending=False)
+product_type_pivot.head()
+sns.set()
+plt.figure(figsize=(9,20))
+g = sns.heatmap(product_type_pivot[:50],vmax=0.0075,linewidths=0.1,annot=True)
+plt.xticks(rotation=90)
+g.set_title('Remarkable Product',fontdict={'fontsize':18})
+plt.show()
+type_description = pd.DataFrame(index=['# of user','# of order','# of products','order/user','product/user','product/order'],columns=product_type_pivot.columns)
+type_description
+Type=[1,2,3,4,5]
+for each in Type:
+    type_description.iloc[0][each]=user_order_products_pure[user_order_products_pure['type']==each]['user_id_x'].nunique()
+    type_description.iloc[1][each]=user_order_products_pure[user_order_products_pure['type']==each]['order_id'].nunique()
+    type_description.iloc[2][each]=len(user_order_products_pure[user_order_products_pure['type']==each]['product_id'])
+type_description.iloc[0]['All']=user_order_products_pure[:]['user_id_x'].nunique()
+type_description.iloc[1]['All']=user_order_products_pure[:]['order_id'].nunique()
+type_description.iloc[2]['All']=len(user_order_products_pure[:]['product_id'])
+
+type_description.iloc[3,:]=type_description.iloc[1,:]/type_description.iloc[0,:]
+type_description.iloc[4,:]=type_description.iloc[2,:]/type_description.iloc[0,:]
+type_description.iloc[5,:]=type_description.iloc[2,:]/type_description.iloc[1,:]
+user_order_products_pure[user_order_products_pure['type']==1]['user_id_x'].nunique()
+type_description
+type_description.to_csv('type_description.csv')
+aisle_type_pivot=pd.crosstab(user_order_products_pure['aisle'],user_order_products_pure['type'],normalize='columns',margins=True)
+aisle_type_pivot=aisle_type_pivot.sort_values('All',ascending=False)
+sns.set()
+plt.figure(figsize=(9,20))
+g = sns.heatmap(aisle_type_pivot[:50],linewidths=0.1,annot=True,vmax=0.04)
+plt.xticks(rotation=90)
+g.set_title('Remarkable Aisle',fontdict={'fontsize':18})
+plt.show()
+department_type_pivot=pd.crosstab(user_order_products_pure['department'],user_order_products_pure['type'],normalize='columns',margins=True)
+department_type_pivot=department_type_pivot.sort_values('All',ascending=False)
+sns.set()
+plt.figure(figsize=(9,20))
+g = sns.heatmap(department_type_pivot[:50],linewidths=0.1,annot=True,vmax=0.06)
+plt.xticks(rotation=90)
+g.set_title('Remarkable Department',fontdict={'fontsize':18})
+plt.show()
+
+
+
+
+
+
+threshold_7 = 0.35 * np.max(linkage_result[:,2])
+#visualise hyerarchical clustering
+plt.figure(num=None, figsize=(16,9),dpi=300, facecolor='w', edgecolor='k')
+dendrogram(linkage_result,color_threshold=threshold_7)
+plt.show
+#get the result of clustering
+user_clustered_7 = fcluster(linkage_result, threshold_7, criterion='distance')
+user_clustered_7
+len(user_clustered_7)
+#products_user_pure = user_products_pure.sort_values(by='product_id',ascending=False).dropna()
+#products_user_pure.head(20)
+#products_user_cross = pd.crosstab(products_user_pure[1000000:1100000]['product_id'],products_user_pure[1000000:1100000]['user_id'])
+#linkage_result_2 = linkage(products_user_cross, method='ward',metric='euclidean')

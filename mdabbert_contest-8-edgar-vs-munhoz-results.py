@@ -1,0 +1,220 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+#This will help us keep track of the submissions
+
+sub_name_list = ['dummy', 'mdabbert', 'BossaNostra 1', 'BossaNostra 2']
+
+score_list = [] #We can keep the scores here
+
+
+
+#Put the submissions in dataframe form and add to a list.
+
+sub_list = []
+
+temp_df = pd.read_csv("/kaggle/input/ufc-fight-night-edgar-vs-munhoz-dummy-task-sub/task-dummy.csv")
+
+sub_list.append(temp_df)
+
+
+
+temp_df = pd.read_csv("/kaggle/input/ufc-fight-night-82220-contest-submission/ufc-8-22-20-sub.csv")
+
+sub_list.append(temp_df)
+
+
+
+temp_df = pd.read_csv("/kaggle/input/edgar-vs-munhoz-contest-submission-1/edgar_vs_munhoz_Submission_1.csv")
+
+sub_list.append(temp_df)
+
+
+
+temp_df = pd.read_csv("/kaggle/input/edgar-vs-munhoz-contest-submission-2/edgar_vs_munhoz_Submission_2.csv")
+
+sub_list.append(temp_df)
+results_df = pd.read_csv("/kaggle/input/ultimate-ufc-dataset/most-recent-event.csv")
+
+
+
+#We only need the fighter names, odds, and winner
+
+
+
+results_df = results_df[['R_fighter', 'B_fighter', 'R_ev', 'B_ev', 'Winner']]
+
+display(results_df)
+df = pd.read_csv('/kaggle/input/ultimate-ufc-dataset/ufc-master.csv')
+
+df['date'] = pd.to_datetime(df['date'])
+
+
+
+df['underdog'] = ''
+
+
+
+red_underdog_mask = df['R_odds'] > df['B_odds']
+
+#print(red_underdog_mask)
+
+#print()
+
+
+
+blue_underdog_mask = df['B_odds'] > df['R_odds']
+
+#print(blue_underdog_mask)
+
+#print()
+
+
+
+even_mask = (df['B_odds'] == df['R_odds'])
+
+#print(even_mask)
+
+#print()
+
+
+
+df['underdog'][red_underdog_mask] = 'Red'
+
+df['underdog'][blue_underdog_mask] = 'Blue'
+
+df['underdog'][even_mask] = 'Even'
+
+
+
+underdog_win_df = df[(df['Winner'] == df['underdog'])].copy()
+
+underdog_win_df['winner_odds'] = underdog_win_df[['B_odds', 'R_odds']].values.max(1)
+
+underdog_win_df = underdog_win_df.sort_values(by=['winner_odds'], ascending=False)
+
+underdog_display = underdog_win_df[['R_fighter', 'B_fighter', 'weight_class', 'date', 'Winner', 'winner_odds']]
+
+
+
+display(underdog_display.head(10))
+#Returns a specific bet EV based on winning_ev and probability.
+
+def get_bet_ev(ev, prob):
+
+    
+
+    return(ev*prob - (1-prob)*100)
+#Used to determine the bet of each fight.  We will use probabilities and the ev to 
+
+#determine profitable bets
+
+def get_bet(R_prob, B_prob, R_ev, B_ev):
+
+    red_ev = get_bet_ev(R_ev, R_prob)
+
+    blue_ev = get_bet_ev(B_ev, B_prob)
+
+    if red_ev > 0:
+
+        return('Red')
+
+    if blue_ev > 0:
+
+        return('Blue')
+
+    
+
+    return 'None'
+def get_profit(winner, bet, R_ev, B_ev):
+
+    if bet == 'None':
+
+        return 0
+
+    if (bet == 'Blue' and winner == 'Blue'):
+
+        return B_ev
+
+    if (bet == 'Red' and winner == 'Red'):
+
+        return R_ev
+
+    else:
+
+        return (-100)
+#Let's make a helper function to make this easier
+
+
+
+def get_score(sub, results):
+
+#    display(sub)
+
+#    display(results)
+
+    #Let's merge the two dataframes
+
+    merge_df = pd.merge(sub, results)
+
+    #display(merge_df)
+
+    #We can get the proper bet by using a lambda function
+
+    merge_df['Bet'] = merge_df.apply(lambda x: get_bet(x['R_prob'],x['B_prob'],x['R_ev'],x['B_ev']), axis=1)
+
+    merge_df['Profit'] = merge_df.apply(lambda x: get_profit(x['Winner'], x['Bet'], x['R_ev'], x['B_ev']), axis=1)
+
+    display(merge_df)
+
+    return(sum(merge_df['Profit']))
+z = 0
+
+score_list.append(get_score(sub_list[z], results_df))
+
+print(f"{sub_name_list[z]}'s bets saw a total profit of {score_list[z]}")
+z = 1
+
+score_list.append(get_score(sub_list[z], results_df))
+
+print(f"{sub_name_list[z]}'s bets saw a total profit of {score_list[z]}")
+z = 2
+
+score_list.append(get_score(sub_list[z], results_df))
+
+print(f"{sub_name_list[z]}'s bets saw a total profit of {score_list[z]}")
+z = 3
+
+score_list.append(get_score(sub_list[z], results_df))
+
+print(f"{sub_name_list[z]}'s bets saw a total profit of {score_list[z]}")

@@ -1,0 +1,80 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+import os
+print(os.listdir("../input"))
+
+# Any results you write to the current directory are saved as output.
+test_df_merged=pd.read_csv('../input/elo-cards-test-data-preparation/test_df_merged_Merch.csv')
+median_purch_lag3 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Median_purch_lag3.csv')
+median_purch_lag6 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Median_purch_lag6.csv')
+median_purch_lag12 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Median_purch_lag12.csv')
+median_sales_lag3 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Median_sales_lag3.csv')
+median_sales_lag6 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Median_sales_lag6.csv')
+median_sales_lag12 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Median_sales_lag12.csv')
+var_sales_lag3 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Var_sales_lag3.csv')
+var_sales_lag6 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Var_sales_lag6.csv')
+var_sales_lag12 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Var_sales_lag12.csv')
+var_purch_lag3 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Var_purch_lag3.csv')
+var_purch_lag6 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Var_purch_lag6.csv')
+var_purch_lag12 = pd.read_csv('../input/combining-lag-features-1-and-2-files/Var_purch_lag12.csv')
+len(test_df_merged)
+test_df_merged = test_df_merged.merge(median_purch_lag3, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(median_purch_lag6, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(median_purch_lag12, how='left', on = ['card_id'])
+
+test_df_merged.fillna(0, inplace=True)
+len(test_df_merged)
+test_df_merged = test_df_merged.merge(var_purch_lag3, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(var_purch_lag6, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(var_purch_lag12, how='left', on = ['card_id'])
+
+test_df_merged.fillna(0, inplace=True)
+len(test_df_merged)
+test_df_merged = test_df_merged.merge(median_sales_lag3, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(median_sales_lag6, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(median_sales_lag12, how='left', on = ['card_id'])
+
+test_df_merged.fillna(0, inplace=True)
+len(test_df_merged)
+test_df_merged = test_df_merged.merge(var_sales_lag3, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(var_sales_lag6, how='left', on = ['card_id'])
+test_df_merged = test_df_merged.merge(var_sales_lag12, how='left', on = ['card_id'])
+test_df_merged.fillna(0, inplace=True)
+len(test_df_merged)
+Median_Amt_card=pd.read_csv('../input/elo-cards-adding-more-features/MedianAmt_by_Card_Merch.csv')
+Var_Amt_card=pd.read_csv('../input/elo-cards-adding-more-features/VarAmt_by_Card_Merch.csv')
+Median_instal_card=pd.read_csv('../input/fork-of-fork-of-fork-of-elo-cards-data-pre-6dcb4e/Median_instal_by_card.csv')
+test_df_merged=pd.merge(Median_Amt_card, test_df_merged, how = 'inner', left_on = ['card_id'], right_on=['card_id'])
+test_df_merged=pd.merge(Var_Amt_card, test_df_merged, how = 'inner', left_on = ['card_id'], right_on=['card_id'])
+test_df_merged=pd.merge(Median_instal_card, test_df_merged, how = 'inner', left_on = ['card_id'], right_on=['card_id'])
+len(test_df_merged)
+test_df_merged.head()
+test_df_merged = test_df_merged.rename(columns={'purchase_amount_x': 'Median_purch_amt'})
+test_df_merged = test_df_merged.rename(columns={'purchase_amount_y': 'Variance_purch_amt'})
+test_df_merged = test_df_merged.rename(columns={'installments_x': 'Median_installments'})
+test_df_merged.head()
+test_df_merged = test_df_merged.rename(columns={'avg_sales_lag3_x': 'Median_avg_sales_lag3'})
+test_df_merged = test_df_merged.rename(columns={'avg_sales_lag6_x': 'Median_avg_sales_lag6'})
+test_df_merged = test_df_merged.rename(columns={'avg_sales_lag12_x': 'Median_avg_sales_lag12'})
+test_df_merged = test_df_merged.rename(columns={'avg_sales_lag3_y': 'Variance_avg_sales_lag3'})
+test_df_merged = test_df_merged.rename(columns={'avg_sales_lag6_y': 'Variance_avg_sales_lag6'})
+test_df_merged = test_df_merged.rename(columns={'avg_sales_lag12_y': 'Variance_avg_sales_lag12'})
+test_df_merged = test_df_merged.rename(columns={'avg_purchases_lag3_x': 'Median_avg_purchases_lag3'})
+test_df_merged = test_df_merged.rename(columns={'avg_purchases_lag6_x': 'Median_avg_purchases_lag6'})
+test_df_merged = test_df_merged.rename(columns={'avg_purchases_lag12_x': 'Median_avg_purchases_lag12'})
+test_df_merged = test_df_merged.rename(columns={'avg_purchases_lag3_y': 'Variance_avg_purchases_lag3'})
+test_df_merged = test_df_merged.rename(columns={'avg_purchases_lag6_y': 'Variance_avg_purchases_lag6'})
+test_df_merged = test_df_merged.rename(columns={'avg_purchases_lag12_y': 'Variance_avg_purchases_lag12'})
+test_df_merged.head()
+test_df_merged=test_df_merged.drop('Unnamed: 0_x',axis=1)
+test_df_merged=test_df_merged.drop('Unnamed: 0_y',axis=1)
+len(test_df_merged)
+test_df_merged.to_csv('test_df_merged.csv')

@@ -1,0 +1,67 @@
+# modules we'll use
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import datetime
+from scipy import stats
+# read in our data
+earthquakes = pd.read_csv("../input/earthquake-database/database.csv")
+landslides = pd.read_csv("../input/landslide-events/catalog.csv")
+volcanos = pd.read_csv("../input/volcanic-eruptions/database.csv")
+
+# set seed for reproducibility
+np.random.seed(0)
+# print the first few rows of the date column
+print(landslides['date'].head())
+# check the data type of our date column
+landslides['date'].dtype
+# Your turn! Check the data type of the Date column in the earthquakes dataframe
+# (note the capital 'D' in date!)
+earthquakes['Date'].dtype
+
+# create a new column, date_parsed, with the parsed dates
+landslides['date_parsed'] = pd.to_datetime(landslides['date'], format = "%m/%d/%y")
+# print the first few rows
+landslides['date_parsed'].head()
+# Your turn! Create a new column, date_parsed, in the earthquakes
+# dataset that has correctly parsed dates in it. (Don't forget to 
+# double-check that the dtype is correct!)
+earthquakes['date_parsed'] = pd.to_datetime(earthquakes['Date'], format ='%m/%d/%Y', infer_datetime_format = True)
+earthquakes['date_parsed'].head()
+# try to get the day of the month from the date column
+day_of_month_landslides = landslides['date'].dt.day
+# get the day of the month from the date_parsed column
+day_of_month_landslides = landslides['date_parsed'].dt.day
+# Your turn! get the day of the month from the date_parsed column
+day_of_month_landslides = landslides['date_parsed'].dt.month
+# remove na's
+day_of_month_landslides = day_of_month_landslides.dropna()
+
+# plot the day of the month
+sns.distplot(day_of_month_landslides, kde=False, bins=31)
+# Your turn! Plot the days of the month from your
+# earthquake dataset and make sure they make sense.
+day_of_month_earthquakes = earthquakes["date_parsed"].dt.day
+day_of_month_earthquakes.dropna()
+sns.distplot(day_of_month_earthquakes, kde = False, bins =100)
+volcanos['Last Known Eruption'].sample(5)
+# creating a subset and removing 'Unknown' values
+volcanos_subset = volcanos.loc[:,'Last Known Eruption']
+volcanos_subset = volcanos_subset[volcanos_subset != 'Unknown']
+volcanos_subset.head()
+#volcanos_subset = volcanos[volcanos.loc[:,'Last Known Eruption'] != 'Unknown']
+#volcanos_subset.head()
+# selecting the indexes of values containing 'BCE'.
+index_of_BCE = volcanos_subset.str.contains('BCE')
+
+# Adding a minus '-' sign in front of the BCE dates.
+volcanos_subset.loc[volcanos_subset.str.contains('BCE')] = '-' + volcanos_subset[index_of_BCE]
+
+# removing 'BCE' and 'CE' from each value.
+volcanos_subset.replace(regex=True,inplace=True,to_replace=r'BCE',value=r'')
+volcanos_subset.replace(regex=True,inplace=True,to_replace=r'CE',value=r'')
+
+# transforming 'object' as 'int64'.
+volcanos_subset = pd.to_numeric(volcanos_subset)
+volcanos_subset.head()
+sns.distplot(volcanos_subset, kde= False, bins =10, color ='red')

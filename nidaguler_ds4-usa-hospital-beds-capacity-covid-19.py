@@ -1,0 +1,103 @@
+import numpy as np
+
+import pandas as pd
+
+import seaborn as sns
+
+import matplotlib.pyplot as plt
+
+import os
+
+print(os.listdir("../input"))
+
+import warnings
+
+warnings.filterwarnings("ignore")
+#usa
+
+df=pd.read_csv("../input/global-hospital-beds-capacity-for-covid19/hospital_beds_USA_v1.csv")
+df.head()
+df.tail()
+df.columns=["country","state","county","lat","lon","type","measure","beds","population","year","source","url"]
+df.drop(["country","url"],axis=1,inplace=True)
+df.head()
+df.isna().sum()
+df.info()
+data=df.iloc[:,2:4]
+df.drop(["lat","lon"],axis=1,inplace=True)
+df.sample(5)
+df.describe()
+df.type.unique()
+df.corr()
+sns.set(style="whitegrid")
+
+ax=sns.barplot(x=df["type"].value_counts().index,
+
+              y=df["type"].value_counts().values,palette="Blues_d",
+
+              hue=['ICU', 'ACUTE', 'OTHER', 'PSYCHIATRIC'])
+
+plt.legend(loc=9)
+
+plt.xlabel("type")
+
+plt.ylabel("Frequency")
+
+plt.title("Show of type Bar Plot")
+
+plt.show()
+plt.figure(figsize=(20,7))
+
+sns.barplot(x=df["state"].value_counts().index,
+
+y=df["state"].value_counts().values)
+
+plt.title("state other rate")
+
+plt.ylabel("rates")
+
+plt.legend(loc=0)
+
+plt.xticks(rotation=90)
+
+plt.show()
+plt.figure(figsize=(22,7))
+
+sns.barplot(x = "state", y = "beds", hue = "type", data = df)
+
+plt.xticks(rotation=90)
+
+plt.show()
+plt.figure(figsize=(20,7))
+
+ax = sns.pointplot(x="year", y="beds", hue="type",data=df)
+
+plt.xticks(rotation=90)
+
+plt.show()
+plt.figure(figsize=(20,7))
+
+ax = sns.pointplot(x="state", y="beds", hue="type",data=df)
+
+plt.xticks(rotation=90)
+
+plt.show()
+labels=df['type'].value_counts().index
+
+colors=['blue','red','yellow','green']
+
+explode=[0.1,0.0,0.0,0,]
+
+values=df['type'].value_counts().values
+
+
+
+#visualization
+
+plt.figure(figsize=(7,7))
+
+plt.pie(values,explode=explode,labels=labels,colors=colors,autopct='%1.1f%%')
+
+plt.title('type According Analysis',color='black',fontsize=10)
+
+plt.show()

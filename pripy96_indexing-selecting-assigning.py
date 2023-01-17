@@ -1,0 +1,37 @@
+import pandas as pd
+import seaborn as sns
+from learntools.advanced_pandas.indexing_selecting_assigning import *
+
+reviews = pd.read_csv("../input/wine-reviews/winemag-data-130k-v2.csv", index_col=0)
+pd.set_option("display.max_rows", 5)
+reviews.head()
+check_q1(reviews.head())
+# Your code here
+reviews.loc[:,'description']
+# Your code here
+reviews.loc[0,'description']
+# Your code here
+reviews.loc[0]
+# Your code here
+reviews.loc[0:10,'description']
+# Your code here
+reviews.loc[[1,2,3,5,8],:]
+# Your code here
+reviews.loc[[0,1,10,100],['country','province','region_1','region_2']]
+# Your code here
+reviews.loc[:100,['country','variety']]
+# Your code here
+reviews[reviews['country']=='Italy']
+# Your code here
+reviews[reviews['region_2'].notnull()]
+# Your code here
+check_q10(reviews["points"])
+# Your code here
+check_q11(reviews.loc[:1000,'points'])
+# Your code here
+check_q12(reviews.iloc[-1000:,3])
+
+# Your code here
+check_q13(reviews[reviews["country"] == 'Italy']["points"])
+# Your code here
+reviews[((reviews["country"] == "Italy") | (reviews["country"] == "France")) & (reviews["points"] >= 90)]["country"]

@@ -1,0 +1,201 @@
+import os
+import gc
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+DATA_DIR = '../input/'
+W, H = 9, 9
+train = pd.read_csv(DATA_DIR+'train_{}_{}_mat.csv'.format(W, H))
+test = pd.read_csv(DATA_DIR+'test_{}_{}_mat.csv'.format(W, H))
+X = train.iloc[:, 1:].values
+y = train.iloc[:, 0].values
+X_test = test.iloc[:, 1:].values
+y_test = test.iloc[:, 0].values
+
+X = X / X.max().max().astype(np.float32)
+X_test = X_test / X_test.max().max().astype(np.float32)
+
+from sklearn.model_selection import train_test_split
+X_train, X_valid, y_train, y_valid = train_test_split(
+    X, y, test_size=0.1, random_state=42)
+import time
+import pickle
+import torch
+from torch.autograd import Variable
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.backends.cudnn
+from torch.utils.data.dataset import Dataset
+from torch.utils.data import DataLoader
+from sklearn.metrics import accuracy_score
+
+### https://github.com/itayhubara/BinaryNet.pytorch/blob/master/models/binarized_modules.py
+def Binarize(tensor,quant_mode='det'):
+    if quant_mode=='det':
+        return tensor.sign()
+    else:
+        return tensor.add_(1).div_(2).add_(torch.rand(
+            tensor.size()).add(-0.5)).clamp_(0,1).round().mul_(2).add_(-1)
+class BinarizeLinear(nn.Linear):
+    def __init__(self, *kargs, **kwargs):
+        super(BinarizeLinear, self).__init__(*kargs, **kwargs)
+    def init_params(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        if not hasattr(self, 'is_first_layer'):
+            self.is_first_layer = True
+    def forward(self, input):
+        if not self.is_first_layer:
+            input.data = Binarize(input.data)
+        if not hasattr(self.weight,'org'):
+            self.weight.org = self.weight.data.clone()
+        self.weight.data = Binarize(self.weight.org)
+        out = nn.functional.linear(input, self.weight)
+        if not self.bias is None:
+            self.bias.org = self.bias.data.clone()
+            out += self.bias.view(1, -1).expand_as(out)
+        return out
+def Quantize(tensor, numBits=8, quant_mode='det', params=None):
+    tensor.clamp_(-2**(numBits-1),2**(numBits-1))
+    if quant_mode=='det':
+        tensor=tensor.mul(2**(numBits-1)).round().div(2**(numBits-1))
+    else:
+        tensor=tensor.mul(2**(numBits-1)).round().add(torch.rand(tensor.size()).add(-0.5)).div(2**(numBits-1))
+        quant_fixed(tensor, params)
+    return tensor
+class QuantizeLinear(nn.Linear):
+    def __init__(self, *kargs, **kwargs):
+        super(QuantizeLinear, self).__init__(*kargs, **kwargs)
+    def init_params(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        if not hasattr(self, 'is_first_layer'):
+            self.is_first_layer = True
+        if not hasattr(self, 'max_bit'):
+            print('Set quantized linear to default bit: 4')
+            self.max_bit = 4
+    def forward(self, input):
+        #if input.size(1) != 784:
+        if not self.is_first_layer:
+            input.data = Quantize(input.data, self.max_bit)
+        if not hasattr(self.weight,'org'):
+            self.weight.org = self.weight.data.clone()
+        self.weight.data = Quantize(self.weight.org, self.max_bit)
+        out = nn.functional.linear(input, self.weight)
+        if not self.bias is None:
+            self.bias.org = self.bias.data.clone()
+            out += self.bias.view(1, -1).expand_as(out)
+        return out
+class QuantizedLinearModel(nn.Module):
+    def __init__(self, dim_input, n_class, max_bit=4):
+        super(QuantizedLinearModel, self).__init__()
+        self.use_cuda = torch.cuda.is_available()
+        torch.manual_seed(233)
+        self.dim_input = dim_input
+        self.max_bit = max_bit
+        self.linear_model = QuantizeLinear(dim_input, n_class, bias=False)
+        self.linear_model.init_params(**dict(is_first_layer=True, max_bit=max_bit))
+    def forward(self, x):
+        x_out = self.linear_model(x)
+        return F.log_softmax(x_out, dim=-1)
+# batch_size = 2000
+n_epochs = 4000
+eval_results = {
+    'loss': np.zeros(n_epochs), 
+    'val_loss': np.zeros(n_epochs),
+    'acc': np.zeros(n_epochs), 
+    'val_acc': np.zeros(n_epochs)
+}
+patience = 100
+optim_params = dict(lr=0.03, weight_decay=1e-7, momentum=0.2)
+n_class = 10
+n_feature = X_train.shape[1]
+verbose_eval = 100
+save_path = 'model.pth'
+use_cuda = torch.cuda.is_available()
+model = QuantizedLinearModel(n_feature, n_class, 4)
+if use_cuda:
+    model = model.cuda()
+optimizer = torch.optim.SGD(model.parameters(), **optim_params)
+criterion = F.cross_entropy
+eval_metric = accuracy_score
+dtrain = Variable(torch.from_numpy(X_train).float())
+ltrain = Variable(torch.from_numpy(y_train).long())
+dvalid = Variable(torch.from_numpy(X_valid).float())
+lvalid = Variable(torch.from_numpy(y_valid).long())
+dtest = Variable(torch.from_numpy(X_test).float())
+ltest = Variable(torch.from_numpy(y_test).long())
+if use_cuda:
+    dtrain = dtrain.cuda()
+    ltrain = ltrain.cuda()
+    dvalid = dvalid.cuda()
+    lvalid = lvalid.cuda()
+    dtest = dtest.cuda()
+    ltest = ltest.cuda()
+restarted = 0
+best_score = -1
+best_epoch = -1
+for epoch_i in np.arange(n_epochs):
+    def closure():
+        model.train()
+        optimizer.zero_grad()
+        out = model(dtrain)
+        loss = criterion(out, ltrain)
+        loss.backward()
+        for p in list(model.parameters()):
+            if hasattr(p,'org'):
+                p.data.copy_(p.org)
+        return loss, out
+    loss, out = optimizer.step(closure)
+    for p in list(model.parameters()):
+        if hasattr(p,'org'):
+            p.org.copy_(p.data.clamp_(-1,1))
+    eval_results['loss'][epoch_i] = float(loss)
+    if use_cuda:
+        out = out.cpu()
+    y_pred = np.argmax(out.data.numpy(), -1)
+    eval_results['acc'][epoch_i] = eval_metric(y_train, y_pred)
+    model.eval()
+    out = model(dvalid)
+    val_loss = float(criterion(out, lvalid))
+    eval_results['val_loss'][epoch_i] = val_loss
+    if use_cuda:
+        out = out.cpu()
+    y_pred = np.argmax(out.data.numpy(), -1)
+    val_score = eval_metric(y_valid, y_pred)
+    eval_results['val_acc'][epoch_i] = val_score
+    if val_score>best_score:
+        best_score = val_score
+        best_epoch = epoch_i
+        torch.save(model.state_dict(), save_path)
+        restarted = 0
+    else:
+        restarted += 1
+    if (epoch_i+1) % verbose_eval == 0:
+        print(f"epoch {epoch_i+1} loss {val_loss:.6f}" )
+        print(f'valid metric {val_score:.6f}')
+model.load_state_dict(torch.load(save_path))
+eval_res = pd.DataFrame(eval_results)
+plot_params = dict(figsize=[12, 4], grid=True, alpha=0.8)
+fig, axes = plt.subplots(nrows=1, ncols=2, dpi=120)
+eval_res[['loss', 'val_loss']].iloc[200:].plot(ax=axes[0], **plot_params)
+axes[0].set_xlabel('epoch')
+axes[0].set_ylabel('loss')
+eval_res[['acc', 'val_acc']].iloc[200:].plot(ax=axes[1], **plot_params)
+axes[1].set_xlabel('epoch')
+axes[1].set_ylabel('acc')
+print(f'best score {best_score:.6f} @ epoch {best_epoch}')
+
+model.eval()
+out = model(dtest)
+if use_cuda:
+    out = out.cpu()
+y_pred = np.argmax(out.data.numpy(), -1)
+print(f'test metric {eval_metric(y_test, y_pred):.6f}')
+f = plt.figure(dpi=120)
+sns.distplot(model.linear_model.weight.cpu().data.numpy().ravel())
+plt.grid()
+plt.title('Weight distribution')
+plt.show()
+np.unique(model.linear_model.weight.cpu().data.numpy(), return_counts=True)

@@ -1,0 +1,119 @@
+# SETUP. You don't need to worry for now about what this code does or how it works. If you're ever curious about the 
+# code behind these exercises, it's available under an open source license here: https://github.com/Kaggle/learntools/
+import sys; sys.path.insert(0, '../input/learntools/pseudo_learntools')
+from learntools.python import binder; binder.bind(globals())
+from learntools.python.ex5 import *
+print('Setup complete.')
+def has_lucky_number(nums):
+    """Return whether the given list of numbers is lucky. A lucky list contains
+    at least one number divisible by 7.
+    """
+    for num in nums:
+        if num % 7 == 0:
+            return True
+        else:
+            return False
+def has_lucky_number(nums):
+    """Return whether the given list of numbers is lucky. A lucky list contains
+    at least one number divisible by 7.
+    """
+#     for num in nums:
+#         if num % 7 == 0:
+#             return True
+#     # We've exhausted the list without finding a lucky number
+#     return False
+
+    return any([num % 7 == 0 for num in nums])
+    #help(any)
+
+q1.check()
+q1.hint()
+q1.solution()
+#this code should return an error
+#[1, 2, 3, 4] > 2
+
+
+# def greater_than_2(nums):
+
+#     return any ([num <2 for num in nums])
+
+# n=[1,2,3,4]
+# greater_than_2(n)
+def elementwise_greater_than(L, thresh):
+    """Return a list with the same length as L, where the value at index i is 
+    True if L[i] is greater than thresh, and False otherwise.
+    
+    >>> elementwise_greater_than([1, 2, 3, 4], 2)
+    [False, False, True, True]
+    """
+#     for i in range(L):
+#         L[i]>thresh
+#         return True
+#     return False
+
+    res = []
+    for ele in L:
+        res.append(ele > thresh)
+    return res
+
+#option2
+#return [ele > thresh for ele in L]
+
+
+q2.check()
+q2.hint()
+q2.solution()
+def menu_is_boring(meals):
+    """Given a list of meals served over some period of time, return True if the
+    same meal has ever been served two days in a row, and False otherwise.
+    """
+    me=[]
+    #print("test, length:", len(meals), "list: ", meals)
+    for i in range(len(meals)-1):
+    #    print("inside for:",i, i+1,meals[i], meals[i+1])
+        if(meals[i] == meals[i+1]):
+    #        print ("inside if", i, i+1, (meals[i] == meals[i+1]))
+            return True
+#         else:
+#             me.append(meals[i] == meals[i+1])
+     #       print(me)
+    return False
+#    return False
+    
+    pass
+
+q3.check()
+q3.hint()
+q3.solution()
+play_slot_machine()
+def estimate_average_slot_payout(n_runs):
+    """Run the slot machine n_runs times and return the average net profit per run.
+    Example calls (note that return value is nondeterministic!):
+    >>> estimate_average_slot_payout(1)
+    -1
+    >>> estimate_average_slot_payout(1)
+    0.5
+    """
+    runs=[]
+    
+    for i in range (n_runs):
+        runs.append(play_slot_machine())
+    return (sum(runs)-n_runs)/len(runs)
+    
+
+estimate_average_slot_payout(1000)
+q4.solution()
+def slots_survival_probability(start_balance, n_spins, n_simulations):
+    """Return the approximate probability (as a number between 0 and 1) that we can complete the 
+    given number of spins of the slot machine before running out of money, assuming we start 
+    with the given balance. Estimate the probability by running the scenario the specified number of times.
+    
+    >>> slots_survival_probability(10.00, 10, 1000)
+    1.0
+    >>> slots_survival_probability(1.00, 2, 1000)
+    .25
+    """
+    pass
+
+q5.check()
+#q5.solution()

@@ -1,0 +1,528 @@
+import numpy as np
+
+import pandas as pd
+
+from pandas import Series
+
+import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+plt.style.use('seaborn')
+
+sns.set(font_scale=2.5)
+
+import warnings
+
+warnings.filterwarnings('ignore')
+
+
+
+%matplotlib inline
+
+
+
+import os
+
+print(os.listdir("../input"))
+data = pd.read_csv('../input/train.csv')
+data.head()
+data.isnull().sum()
+f, ax = plt.subplots(1,2,figsize=(18,8))
+
+data['Survived'].value_counts().plot.pie(explode=[0, 0.1], autopct='%1.1f%%', ax=ax[0], shadow=True)
+
+ax[0].set_title('Survived')
+
+ax[0].set_ylabel('')
+
+sns.countplot('Survived', data=data, ax=ax[1])
+
+ax[1].set_title('Survived')
+
+plt.show()
+data.groupby(['Sex', 'Survived'])['Survived'].count()
+f, ax = plt.subplots(1, 2, figsize=(18,8))
+
+data[['Sex', 'Survived']].groupby(['Sex']).mean().plot.bar(ax=ax[0])
+
+ax[0].set_title('Survived vs Sex')
+
+sns.countplot('Sex', hue='Survived', data=data, ax=ax[1])
+
+ax[1].set_title('Sex: Survived vs Dead')
+
+plt.show()
+pd.crosstab(data['Pclass'], data['Survived'], margins=True).style.background_gradient(cmap='summer_r')
+f, ax = plt.subplots(1,2,figsize=(18,8))
+
+data['Pclass'].value_counts().plot.bar(color=['#CD7F32', '#FFDF00', '#D3D3D3'], ax=ax[0])
+
+ax[0].set_title('Number of Passengers by Pclass')
+
+ax[0].set_ylabel('Count')
+
+sns.countplot('Pclass', hue='Survived', data=data, ax=ax[1])
+
+ax[1].set_title('Pclass: Survived vs Dead')
+pd.crosstab([data['Sex'], data['Survived']], data['Pclass'], margins=True).style.background_gradient(cmap='summer_r')
+sns.factorplot('Pclass', 'Survived', hue='Sex', data=data)
+
+plt.show()
+print('Oldest Passenger was: {:.2f} Years'.format(data['Age'].max()))
+
+print('Youngest Passenger was: {:.2f} Years'.format(data['Age'].min()))
+
+print('Average Age on the ship was: {:.2f} Years'.format(data['Age'].mean()))
+f, ax = plt.subplots(1,2,figsize=(18,8))
+
+sns.violinplot('Pclass', 'Age', hue='Survived', data=data, split=True, scale='count', ax=ax[0])
+
+ax[0].set_title('Pclass and Age vs Survived')
+
+ax[0].set_yticks(range(0,110,10))
+
+sns.violinplot('Sex', 'Age', hue='Survived', data=data, split=True, scale='count', ax=ax[1])
+
+ax[1].set_title('Sex and Age vs Survived')
+
+ax[1].set_yticks(range(0,110,10))
+data['Initial'] = 0
+
+data['Initial'] = data['Name'].str.extract('([A-Za-z]+)\.')
+data.head()
+pd.crosstab(data['Initial'], data['Sex']).T.style.background_gradient(cmap='summer_r')
+data['Initial'].replace(['Mlle', 'Mme', 'Ms', 'Dr', 'Major', 'Lady', 'Countess',\
+
+                         'Jonkheer', 'Col', 'Rev', 'Capt', 'Sir','Don'], \
+
+                       ['Miss', 'Miss', 'Miss', 'Mr', 'Mr', 'Mrs', 'Mrs', 'Other', 'Other',\
+
+                       'Other', 'Mr', 'Mr', 'Mr'], inplace=True)
+data.groupby('Initial')['Age'].mean()
+data.loc[(data['Age'].isnull()) & (data['Initial']=='Mr'), 'Age'] = 33
+
+data.loc[(data['Age'].isnull()) & (data['Initial']=='Mrs'), 'Age'] = 36
+
+data.loc[(data['Age'].isnull()) & (data['Initial']=='Master'), 'Age'] = 5
+
+data.loc[(data['Age'].isnull()) & (data['Initial']=='Miss'), 'Age'] = 22
+
+data.loc[(data['Age'].isnull()) & (data['Initial']=='Other'), 'Age'] = 46
+data['Age'].isnull().any()
+f, ax = plt.subplots(1,2,figsize=(18,8))
+
+data[data['Survived']==0]['Age'].plot.hist(ax=ax[0], bins=20, edgecolor='black', color='red')
+
+ax[0].set_title('Survived=0')
+
+x1=list(range(0,85,10))
+
+ax[0].set_xticks(x1)
+
+data[data['Survived']==1]['Age'].plot.hist(ax=ax[1], bins=20, edgecolor='black', color='green')
+
+ax[1].set_title('Survived=1')
+
+ax[1].set_xticks(x1)
+
+plt.show()
+sns.factorplot('Pclass', 'Survived', col='Initial', data=data)
+
+plt.show()
+pd.crosstab([data['Embarked'], data['Pclass']],[data['Sex'], data['Survived']], margins=True).style.background_gradient(cmap='summer_r')
+sns.factorplot('Embarked', 'Survived', data=data)
+
+fig=plt.gcf()
+
+fig.set_size_inches(5,3)
+
+plt.show()
+f, ax = plt.subplots(2,2,figsize=(20, 15))
+
+sns.countplot('Embarked', data=data, ax=ax[0,0])
+
+ax[0,0].set_title('No. of Passengers Boarded')
+
+sns.countplot('Embarked', hue='Sex', data=data, ax=ax[0,1])
+
+ax[0,1].set_title('Male-Female Split for Embarked')
+
+sns.countplot('Embarked', hue='Survived', data=data, ax=ax[1,0])
+
+ax[1,0].set_title('Embarked vs Survived')
+
+sns.countplot('Embarked', hue='Pclass', data=data, ax=ax[1,1])
+
+ax[1,1].set_title('Embarked vs Pclass')
+
+plt.subplots_adjust(wspace=0.2, hspace=0.5)
+
+plt.show()
+sns.factorplot('Pclass', 'Survived', hue='Sex', col='Embarked', data=data)
+
+plt.show()
+data['Embarked'].fillna('S', inplace=True)
+data['Embarked'].isnull().any()
+pd.crosstab(data['SibSp'], data['Survived'], margins=True).style.background_gradient(cmap='summer_r')
+f, ax = plt.subplots(1,2,figsize=(18,8))
+
+sns.barplot('SibSp', 'Survived', data=data, ax=ax[0])
+
+ax[0].set_title('SibSp vs Survived')
+
+sns.factorplot('SibSp', 'Survived', data=data, ax=ax[1])
+
+ax[1].set_title('SibSp vs Survived')
+
+plt.close(2)
+
+plt.show()
+pd.crosstab(data['SibSp'], data['Pclass']).style.background_gradient(cmap='summer_r')
+pd.crosstab(data['Parch'], data['Pclass']).style.background_gradient(cmap='summer_r')
+f, ax = plt.subplots(1,2,figsize=(18,8))
+
+sns.barplot('Parch', 'Survived', data=data, ax=ax[0])
+
+ax[0].set_title('Parch vs Survived')
+
+sns.factorplot('Parch', 'Survived', data=data, ax=ax[1])
+
+ax[1].set_title('Parch vs Survived')
+
+plt.close(2)
+
+plt.show()
+print('Highest Fare was {:.2f}'.format(data['Fare'].max()))
+
+print('Lowest Fare was {:.2f}'.format(data['Fare'].min()))
+
+print('Aberage Fare was {:.2f}'.format(data['Fare'].mean()))
+f, ax = plt.subplots(1,3,figsize=(20,8))
+
+sns.distplot(data[data['Pclass']==1]['Fare'], ax=ax[0])
+
+ax[0].set_title('Fares Pclass 1')
+
+sns.distplot(data[data['Pclass']==2]['Fare'], ax=ax[1])
+
+ax[1].set_title('Fares Pclass 2')
+
+sns.distplot(data[data['Pclass']==3]['Fare'], ax=ax[2])
+
+ax[2].set_title('Fares Pclass 3')
+
+plt.show()
+sns.heatmap(data.corr(), annot=True, cmap='RdYlGn', linewidth=0.2)
+
+fig=plt.gcf()
+
+fig.set_size_inches(10,8)
+
+plt.show()
+data['Age_band']=0
+
+data.loc[data['Age']<=16, 'Age_band']=0
+
+data.loc[(16<data['Age']) & (data['Age']<=32), 'Age_band']=1
+
+data.loc[(32<data['Age']) & (data['Age']<=48), 'Age_band']=2
+
+data.loc[(48<data['Age']) & (data['Age']<=64), 'Age_band']=3
+
+data.loc[64<data['Age'], 'Age_band']=4
+
+data.head()
+data['Age_band'].value_counts()
+sns.factorplot('Age_band', 'Survived', col='Pclass', data=data)
+
+plt.show()
+data['Family_size']=0
+
+data['Family_size']=data['SibSp']+data['Parch']
+
+data['Alone']=0
+
+data.loc[data['Family_size']==0, 'Alone']=1
+f, ax = plt.subplots(1,2,figsize=(18,6))
+
+sns.factorplot('Family_size', 'Survived', data=data, ax=ax[0])
+
+ax[0].set_title('Family_size vs Survived')
+
+sns.factorplot('Alone', 'Survived', data=data, ax=ax[1])
+
+ax[1].set_title('Alone vs Survived')
+
+plt.close(2)
+
+plt.close(3)
+
+plt.show()
+sns.factorplot('Alone', 'Survived', hue='Sex', col='Pclass', data=data)
+
+plt.show()
+data['Fare_range']=pd.qcut(data['Fare'], 4)
+
+data.groupby(['Fare_range'])['Survived'].mean().to_frame().style.background_gradient(cmap='summer_r')
+data['Fare_cat']=0
+
+data.loc[data['Fare']<=7.91, 'Fare_cat']=0
+
+data.loc[(7.91<data['Fare']) & (data['Fare']<=14.454), 'Fare_cat']=1
+
+data.loc[(14.454<data['Fare']) & (data['Fare']<=31.0), 'Fare_cat']=2
+
+data.loc[(31.0<data['Fare']) & (data['Fare']<=513), 'Fare_cat']=3
+type(data)
+sns.factorplot('Fare_cat', 'Survived', hue='Sex', data=data)
+
+plt.show()
+data['Sex'].replace(['female', 'male'], [0,1], inplace=True)
+
+data['Embarked'].replace(['S', 'C', 'Q'], [0,1,2], inplace=True)
+
+data['Initial'].replace(['Mr', 'Mrs', 'Miss', 'Master', 'Other'], [0,1,2,3,4], inplace=True)
+data.drop(['Name', 'Age', 'Ticket', 'Fare', 'Cabin', 'Fare_range','PassengerId'], axis=1, inplace=True)
+data.head()
+sns.heatmap(data.corr(), annot=True, cmap='RdYlGn', linewidth=0.2, annot_kws={'size':20})
+
+fig=plt.gcf()
+
+fig.set_size_inches(18,15)
+
+plt.xticks(fontsize=14)
+
+plt.yticks(fontsize=14)
+
+plt.show()
+from sklearn.linear_model import LogisticRegression
+
+from sklearn import svm
+
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.neighbors import KNeighborsClassifier
+
+from sklearn.naive_bayes import GaussianNB
+
+from sklearn.tree import DecisionTreeClassifier
+
+from sklearn.model_selection import train_test_split
+
+from sklearn import metrics
+
+from sklearn.metrics import confusion_matrix
+data.head()
+train, test = train_test_split(data, test_size=0.3, random_state=2019, stratify=data['Survived'])
+train_X = train[train.columns[1:]]
+
+train_Y = train[train.columns[:1]]
+
+test_X = test[test.columns[1:]]
+
+test_Y = test[test.columns[:1]]
+
+X = data[data.columns[1:]]
+
+Y = data['Survived']
+model = svm.SVC(kernel='rbf', C=1, gamma=0.1)
+
+model.fit(train_X, train_Y)
+
+prediction=model.predict(test_X)
+
+print('Accuracy for rbf SVM is {:.6f}'.format(metrics.accuracy_score(prediction, test_Y)))
+model=svm.SVC(kernel='linear', C=0.1, gamma=0.1)
+
+model.fit(train_X, train_Y)
+
+prediction2=model.predict(test_X)
+
+print('Accuracy for linear SVM is {:.6f}'.format(metrics.accuracy_score(prediction2, test_Y)))
+model=LogisticRegression()
+
+model.fit(train_X, train_Y)
+
+prediction3=model.predict(test_X)
+
+print('Accuracy for Logistic Regression is {:.6f}'.format(metrics.accuracy_score(prediction3, test_Y)))
+model=DecisionTreeClassifier()
+
+model.fit(train_X, train_Y)
+
+prediction4=model.predict(test_X)
+
+print('Accuracy for Decision Tree is {:.6f}'.format(metrics.accuracy_score(prediction4, test_Y)))
+model=KNeighborsClassifier()
+
+model.fit(train_X, train_Y)
+
+prediction5=model.predict(test_X)
+
+print('Accuracy for KNN is {:.6f}'.format(metrics.accuracy_score(prediction5, test_Y)))
+a_index = list(range(1,11))
+
+a=pd.Series()
+
+x=[0,1,2,3,4,5,6,7,8,9,10]
+
+for i in list(range(1,11)):
+
+    model=KNeighborsClassifier(n_neighbors=i)
+
+    model.fit(train_X, train_Y)
+
+    prediction=model.predict(test_X)
+
+    a=a.append(pd.Series(metrics.accuracy_score(prediction, test_Y)))
+
+plt.plot(a_index, a)
+
+plt.xticks(x)
+
+fig=plt.gcf()
+
+fig.set_size_inches(12,6)
+
+plt.show()
+
+print('Accuracies for different values of n are: ', a.values, 'with the max value as ', a.values.max())
+model=KNeighborsClassifier(n_neighbors=8)
+
+model.fit(train_X, train_Y)
+
+prediction5=model.predict(test_X)
+
+print('Accuracy for KNN is {:.6f}'.format(metrics.accuracy_score(prediction5, test_Y)))
+model=GaussianNB()
+
+model.fit(train_X, train_Y)
+
+prediction6=model.predict(test_X)
+
+print('Accuracy for NB is {:.6f}'.format(metrics.accuracy_score(prediction6, test_Y)))
+model=RandomForestClassifier(n_estimators=100)
+
+model.fit(train_X, train_Y)
+
+prediction7=model.predict(test_X)
+
+print('Accuracy for RF is {:.6f}'.format(metrics.accuracy_score(prediction7, test_Y)))
+from sklearn.model_selection import KFold
+
+from sklearn.model_selection import cross_val_score
+
+from sklearn.model_selection import cross_val_predict
+kfold=KFold(n_splits=10, random_state=2019)
+
+xyz=[]
+
+accuracy=[]
+
+std=[]
+
+classifiers = ['Linear Svm', 'Radial Svm', 'Logistic Regression', 'KNN',\
+
+               'Decision Tree', 'Naive Bayes', 'Random Forest']
+
+models=[svm.SVC(kernel='linear'), svm.SVC(kernel='rbf'), LogisticRegression(), \
+
+       KNeighborsClassifier(n_neighbors=9), DecisionTreeClassifier(), \
+
+       GaussianNB(), RandomForestClassifier(n_estimators=100)]
+
+for i in models:
+
+    model=i
+
+    cv_result=cross_val_score(model, X, Y, cv=kfold, scoring='accuracy')
+
+    cf_result=cv_result
+
+    xyz.append(cv_result.mean())
+
+    std.append(cv_result.std())
+
+    accuracy.append(cv_result)
+
+new_models_dataframe2 = pd.DataFrame({'CV Mean': xyz, 'Std':std}, index=classifiers)
+
+new_models_dataframe2
+plt.subplots(figsize=(12,6))
+
+box=pd.DataFrame(accuracy, index=[classifiers])
+
+box.T.boxplot()
+new_models_dataframe2['CV Mean'].plot.barh(width=0.8)
+
+plt.title('Average CV Mean Accuracy')
+
+fig=plt.gcf()
+
+fig.set_size_inches(8,5)
+
+plt.show()
+f, ax=plt.subplots(3,3,figsize=(12,10))
+
+
+
+y_pred=cross_val_predict(svm.SVC(kernel='rbf'), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[0,0], annot=True, fmt='2.0f')
+
+ax[0,0].set_title('Matrix for rbf-SVM')
+
+
+
+y_pred=cross_val_predict(svm.SVC(kernel='linear'), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[0,1], annot=True, fmt='2.0f')
+
+ax[0,1].set_title('Matrix for Linear-SVM')
+
+
+
+y_pred=cross_val_predict(KNeighborsClassifier(n_neighbors=9), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[0,2], annot=True, fmt='2.0f')
+
+ax[0,1].set_title('Matrix for KNN')
+
+
+
+y_pred=cross_val_predict(RandomForestClassifier(n_estimators=100), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[1,0], annot=True, fmt='2.0f')
+
+ax[0,1].set_title('Matrix for RF')
+
+
+
+y_pred=cross_val_predict(LogisticRegression(), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[1,1], annot=True, fmt='2.0f')
+
+ax[0,1].set_title('Matrix for Logistic Regression')
+
+
+
+y_pred=cross_val_predict(DecisionTreeClassifier(), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[1,2], annot=True, fmt='2.0f')
+
+ax[0,1].set_title('Matrix for Decision Tree')
+
+
+
+y_pred=cross_val_predict(GaussianNB(), X, Y, cv=10)
+
+sns.heatmap(confusion_matrix(Y, y_pred), ax=ax[2,0], annot=True, fmt='2.0f')
+
+ax[0,1].set_title('Matrix for Naive Bayes')
+
+
+
+plt.subplots_adjust(hspace=0.2, wspace=0.2)
+
+plt.show()

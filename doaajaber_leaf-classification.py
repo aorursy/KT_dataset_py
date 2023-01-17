@@ -1,0 +1,151 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+df=pd.read_csv('../input/leaf-classification/train.csv.zip',index_col='id')
+
+df
+species_no=df.species.unique()
+
+print(species_no)
+
+print(len(species_no))
+df.isna().any().sum()
+X=df.drop('species',axis=1)
+
+X
+y=df.species
+
+y
+from sklearn.preprocessing import LabelEncoder
+
+label_encoder = LabelEncoder()
+
+
+
+le = LabelEncoder().fit(y)
+
+labels = le.transform(y) 
+
+#label_y = label_encoder.fit_transform(y)
+
+classes = list(le.classes_) 
+
+classes
+
+'''from sklearn.preprocessing import OneHotEncoder
+
+
+
+# Apply one-hot encoder to each column with categorical data
+
+OH_encoder = OneHotEncoder(handle_unknown='ignore', sparse=True)
+
+OH_y = pd.DataFrame(OH_encoder.fit_transform(y))
+
+OH_y.index=y.index
+
+OH_y'''
+'''from sklearn.model_selection import  train_test_split
+
+X_train, X_valid, y_train, y_valid = train_test_split(X,label_y)'''
+#y_train.shape
+#len( np.unique(y_train))
+#len(np.unique(y_valid))
+parameters = [{
+
+    'n_estimators': list(range(100, 201, 100)), 
+
+    'learning_rate': [x / 100 for x in range(5, 50, 10)], 
+
+    'max_depth': list(range(6, 40, 10))
+
+}]
+
+print(parameters)
+from sklearn.model_selection import GridSearchCV
+
+from xgboost import XGBClassifier
+
+from sklearn.metrics import log_loss ,accuracy_score
+
+gsearch = GridSearchCV(estimator=XGBClassifier(),
+
+                       param_grid = parameters, 
+
+                       scoring= 'neg_log_loss',
+
+                       n_jobs=4,cv=5, verbose=7)
+
+'''gsearch.fit(X,label_y)'''
+'''best_n_estimators = gsearch.best_params_.get('n_estimators')
+
+best_n_estimators'''
+'''best_learning_rate = gsearch.best_params_.get('learning_rate')
+
+best_learning_rate'''
+'''best_max_depth = gsearch.best_params_.get('max_depth')
+
+best_max_depth'''
+final_model = XGBClassifier(n_estimators=100, 
+
+                          learning_rate=.05, 
+
+                          max_depth=6)
+final_model.fit(X,labels)
+#len(y_valid)
+'''preds = final_model.predict(X_valid)
+
+len(preds)'''
+
+
+'''ll = accuracy_score(y_valid , preds)
+
+ll'''
+import pandas as pd
+
+X_test=pd.read_csv('../input/leaf-classification/test.csv.zip')
+
+test_ids = X_test.id 
+
+X_test.drop('id',axis=1,inplace=True)
+preds_test = final_model.predict_proba(X_test)
+
+preds_test
+submission = pd.DataFrame(preds_test, columns=classes)
+
+submission.insert(0, 'id', test_ids)
+
+submission.reset_index()
+submission.to_csv('submission.csv', index=False)
+
+print('done!')

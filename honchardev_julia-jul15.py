@@ -1,0 +1,1 @@
+# https://github.com/honchardev/Fun/blob/master/AI/kaggle/julia/julia_guide_kaggle.jl

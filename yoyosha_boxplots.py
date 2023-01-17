@@ -1,0 +1,31 @@
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import seaborn as sns
+import matplotlib.pylab as plt
+df = pd.read_csv('../input/directors-csv/CSV.csv', encoding='latin1')
+df.head()
+d = pd.read_csv('../input/directorsiqr/IQR_v.02_CSV.csv', encoding='latin1')
+d.head()
+g = pd.read_csv('../input/director-gross/Gross_CSV.csv')
+g.head(10)
+o = pd.read_csv('../input/oscars/Oscars_CSV.csv', encoding='latin1')
+o.head()
+s = pd.read_csv("../input/scores/Scores_CSV.csv", encoding='latin1')
+s.head()
+sns.set(rc={'figure.figsize':(16,14)})
+ax = sns.boxplot(x="Weighted",y="Name", data=df, palette=("hls")).set_title("IMDb", fontsize = 20)
+ax = sns.stripplot(x="Weighted", y="Name", data=df)
+with sns.color_palette("hls", 8):
+    ax = sns.boxplot(x="Metascore", y="Name", data=df).set_title("Metascore", fontsize = 20)
+    ax = sns.stripplot(x="Metascore", y="Name", data=df)
+sns.set(rc={'figure.figsize':(16,14)})
+ax = sns.boxplot(x="Score", y="Name", hue="Type", data=s).set_title("IMDb & Metascore", fontsize = 20)
+with sns.color_palette("hls", 4):
+    ax = sns.barplot(x="IQR", y="Name", hue="Audience", data=d).set_title("Interquartile range of the 25 Directors", fontsize = 20)
+    plt.legend(fontsize='15')
+ax = sns.barplot(x="Name", y="Avg. Net Gross", data=g, palette=sns.mpl_palette("Set2", 8)).set_title(("Net Gross of the 25 Directors"), fontsize = 20)
+plt.xticks(rotation=90)
+sns.set(rc={'figure.figsize':(14,8)})
+ax = sns.barplot(x="Name", y="Count", hue="Academy Awards", data=o).set_title("Number of Oscars by Directors", fontsize = 20)
+plt.xticks(rotation=75)
+plt.legend(fontsize='15', title_fontsize='18')

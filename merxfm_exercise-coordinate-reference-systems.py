@@ -1,0 +1,185 @@
+import pandas as pd
+
+import geopandas as gpd
+
+
+
+from shapely.geometry import LineString
+
+
+
+from learntools.core import binder
+
+binder.bind(globals())
+
+from learntools.geospatial.ex2 import *
+# Load the data and print the first 5 rows
+
+birds_df = pd.read_csv("../input/geospatial-learn-course-data/purple_martin.csv", parse_dates=['timestamp'])
+
+print("There are {} different birds in the dataset.".format(birds_df["tag-local-identifier"].nunique()))
+
+birds_df.head()
+# Your code here: Create the GeoDataFrame
+
+birds = gpd.GeoDataFrame(birds_df, geometry=gpd.points_from_xy(birds_df['location-long'], birds_df['location-lat']))
+
+
+
+# Your code here: Set the CRS to {'init': 'epsg:4326'}
+
+birds.crs = {'init': 'epsg:4326'}
+
+
+
+display(birds.head())
+
+
+
+# Check your answer
+
+q_1.check()
+# Load a GeoDataFrame with country boundaries in North/South America, print the first 5 rows
+
+world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+
+americas = world.loc[world['continent'].isin(['North America', 'South America'])]
+
+americas.head()
+# Your code here
+
+ax = americas.plot(figsize=(10,20), color='none', edgecolor='black');
+
+birds.plot(ax=ax, markersize=15, alpha=0.6);
+# Get credit for your work after you have created a map
+
+q_2.check()
+# GeoDataFrame showing path for each bird
+
+path_df = birds.groupby("tag-local-identifier")['geometry'].apply(list).apply(lambda x: LineString(x)).reset_index()
+
+path_gdf = gpd.GeoDataFrame(path_df, geometry=path_df.geometry)
+
+path_gdf.crs = {'init' :'epsg:4326'}
+
+
+
+# GeoDataFrame showing starting point for each bird
+
+start_df = birds.groupby("tag-local-identifier")['geometry'].apply(list).apply(lambda x: x[0]).reset_index()
+
+start_gdf = gpd.GeoDataFrame(start_df, geometry=start_df.geometry)
+
+start_gdf.crs = {'init' :'epsg:4326'}
+
+
+
+# Show first five rows of GeoDataFrame
+
+start_gdf.head()
+# Your code here
+
+end_gdf = birds.groupby('tag-local-identifier')['geometry'].apply(list).apply(lambda x: x[-1]).reset_index()
+
+end_gdf = gpd.GeoDataFrame(end_gdf, geometry=end_gdf['geometry'])
+
+end_gdf.crs = {'init': 'epsg:4326'}
+
+
+
+display(end_gdf.head())
+
+
+
+# Check your answer
+
+q_3.check()
+# Your code here
+
+ax = americas.plot(figsize=(20,10), color='whitesmoke', edgecolor='darkgrey');
+
+start_gdf.plot(ax=ax, alpha=0.7);
+
+path_gdf.plot(ax=ax, linewidth=1, linestyle=':', color='dimgrey');
+
+end_gdf.plot(ax=ax, alpha=0.7);
+# Get credit for your work after you have created a map
+
+q_4.check()
+
+
+
+# Uncomment to see our solution (your code may look different!)
+
+#q_4.solution()
+# Path of the shapefile to load
+
+protected_filepath = "../input/geospatial-learn-course-data/SAPA_Aug2019-shapefile/SAPA_Aug2019-shapefile/SAPA_Aug2019-shapefile-polygons.shp"
+
+
+
+# Your code here
+
+protected_areas = gpd.read_file(protected_filepath)
+
+
+
+display(protected_areas.head(), protected_areas.columns)
+
+
+
+# Check your answer
+
+q_5.check()
+# Country boundaries in South America
+
+south_america = americas.loc[americas['continent']=='South America']
+
+
+
+# Your code here: plot protected areas in South America
+
+ax = south_america.plot(figsize=(10,10), color='none', edgecolor='black');
+
+protected_areas.plot(ax=ax, alpha=0.4);
+
+
+
+# Uncomment to see a hint
+
+#q_6.hint()
+# Get credit for your work after you have created a map
+
+q_6.check()
+P_Area = sum(protected_areas['REP_AREA']-protected_areas['REP_M_AREA'])
+
+print("South America has {} square kilometers of protected areas.".format(P_Area))
+south_america.head()
+# Your code here: Calculate the total area of South America (in square kilometers)
+
+totalArea = sum(south_america.geometry.to_crs(epsg=3035).area) / 10**6
+
+
+
+print("South America has a total area of {} square kilometers.".format(totalArea))
+
+
+
+# Check your answer
+
+q_7.check()
+# What percentage of South America is protected?
+
+percentage_protected = P_Area/totalArea
+
+print('Approximately {}% of South America is protected.'.format(round(percentage_protected*100, 2)))
+# Your code here
+
+ax = south_america.plot(figsize=(10,10), color='none', edgecolor='black');
+
+birds[birds.geometry.y < 0].plot(ax=ax, alpha=0.6, color='red');
+
+protected_areas[protected_areas['MARINE']!='2'].plot(ax=ax, alpha=0.4, color='green');
+# Get credit for your work after you have created a map
+
+q_8.check()

@@ -1,0 +1,101 @@
+# importing train and test data into train_df and test_df dataframes
+
+import pandas as pd
+
+train = pd.read_csv('/kaggle/input/sce-data-science-2020-course/train.csv')
+
+test = pd.read_csv('/kaggle/input/sce-data-science-2020-course/test.csv')
+# printing training data information 
+
+# (number of non-null observations, datatype)
+
+print(train.info())
+
+print('-'*100)
+
+print(test.info())
+# taking care of missing values
+
+def m(data):
+
+    d = data.copy(deep = True)
+
+    for c in data:
+
+        if (data[c].dtype =='int64') or (data[c].dtype =='float64') : 
+
+            if data[c].isnull().values.any():
+
+                m = data[c].dropna().median()
+
+                d[c].fillna(m, inplace=True)
+
+        else:          
+
+            if data[c].isnull().values.any():
+
+                m = data[c].dropna().mode()[0]
+
+                d[c].fillna(m, inplace=True)
+
+    return d
+
+
+
+trm = m(train)
+
+tsm = m(test)
+# printing training data information with missing values treatment
+
+print(trm.info())
+
+print('-'*100)
+
+print(tsm.info())
+# preparing training data
+
+cols = ['Pclass', 'Age', 'SibSp', 'Parch', 'Fare']
+
+x = trm[cols]
+
+y = trm['Survived']
+
+xx = tsm[cols]
+# defining k nearest neighbors model
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+
+from sklearn.neighbors import KNeighborsClassifier
+
+m = KNeighborsClassifier(n_neighbors=10,
+
+                         weights='uniform',
+
+                         algorithm='auto',
+
+                         leaf_size=30,
+
+                         p=2, 
+
+                         metric='minkowski',
+
+                         metric_params=None,
+
+                         n_jobs=None)
+# scoring decision tree model
+
+from sklearn.model_selection import cross_val_score
+
+scores = cross_val_score(m, x, y, cv = 10)
+
+print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+# fitting decision tree model and building predictions
+
+m.fit(x, y)
+
+yy = m.predict(xx) 
+# preparing submission file
+
+submission = pd.DataFrame( { 'PassengerId': test['PassengerId'] , 'Survived': yy } )
+
+submission.to_csv('knn_model_v1.csv' , index = False )

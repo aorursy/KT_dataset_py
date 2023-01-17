@@ -1,0 +1,97 @@
+# modules we'll use
+import pandas as pd
+import numpy as np
+
+# for Box-Cox Transformation
+from scipy import stats
+
+# for min_max scaling
+from mlxtend.preprocessing import minmax_scaling
+
+# plotting modules
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# read in all our data
+kickstarters_2017 = pd.read_csv("../input/kickstarter-projects/ks-projects-201801.csv")
+
+# set seed for reproducibility
+np.random.seed(0)
+kickstarters_2017.head()
+# generate 1000 data points randomly drawn from an exponential distribution
+original_data = np.random.exponential(size = 1000)
+
+# mix-max scale the data between 0 and 1
+scaled_data = minmax_scaling(original_data, columns = [0])
+
+# plot both together to compare
+fig, ax=plt.subplots(1,2)
+sns.distplot(original_data, ax=ax[0])
+ax[0].set_title("Original Data")
+sns.distplot(scaled_data, ax=ax[1])
+ax[1].set_title("Scaled data")
+# normalize the exponential data with boxcox
+normalized_data = stats.boxcox(original_data)
+
+# plot both together to compare
+fig, ax=plt.subplots(1,2)
+sns.distplot(original_data, ax=ax[0])
+ax[0].set_title("Original Data")
+sns.distplot(normalized_data[0], ax=ax[1])
+ax[1].set_title("Normalized data")
+# select the usd_goal_real column
+usd_goal = kickstarters_2017.usd_goal_real
+
+# scale the goals from 0 to 1
+scaled_data = minmax_scaling(usd_goal, columns = [0])
+
+# plot the original & scaled data together to compare
+fig, ax=plt.subplots(1,2)
+sns.distplot(kickstarters_2017.usd_goal_real, ax=ax[0])
+ax[0].set_title("Original Data")
+sns.distplot(scaled_data, ax=ax[1])
+ax[1].set_title("Scaled data")
+# Your turn! 
+
+# We just scaled the "usd_goal_real" column. What about the "goal" column?
+goal = kickstarters_2017.goal
+scale_goal = minmax_scaling(goal, columns = [0])
+
+fig, ax = plt.subplots(1,2)
+sns.distplot(goal, ax = ax[0])
+ax[0].set_title("Original goal")
+sns.distplot(scale_goal, ax = ax[1])
+ax[1].set_title("Scaled goal")
+# get the index of all positive pledges (Box-Cox only takes postive values)
+index_of_positive_pledges = kickstarters_2017.usd_pledged_real > 0
+
+# get only positive pledges (using their indexes)
+positive_pledges = kickstarters_2017.usd_pledged_real.loc[index_of_positive_pledges]
+
+# normalize the pledges (w/ Box-Cox)
+normalized_pledges = stats.boxcox(positive_pledges)[0]
+
+# plot both together to compare
+fig, ax=plt.subplots(1,2)
+sns.distplot(positive_pledges, ax=ax[0])
+ax[0].set_title("Original Data")
+sns.distplot(normalized_pledges, ax=ax[1])
+ax[1].set_title("Normalized data")
+# Your turn! 
+# We looked as the usd_pledged_real column. What about the "pledged" column? Does it have the same info?
+index_of_positive = kickstarters_2017.pledged > 0
+positive_pledged = kickstarters_2017.pledged.loc[index_of_positive]
+
+normalised_data = stats.boxcox(positive_pledged)[0]
+manual_exp = positive_pledged ** (1/10)
+manual_log = np.log(positive_pledged + 3)
+
+fig, ax = plt.subplots(2,2)
+sns.distplot(positive_pledged, ax = ax[0,0])
+ax[0,0].set_title("Original")
+sns.distplot(normalised_data, ax = ax[0,1])
+ax[0,1].set_title("Normalised")
+sns.distplot(manual_exp, ax = ax[1,0])
+ax[1,0].set_title("Manual exp")
+sns.distplot(manual_log, ax = ax[1,1])
+ax[1,1].set_title("Manual log")

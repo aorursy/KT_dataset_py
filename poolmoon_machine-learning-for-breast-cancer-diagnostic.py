@@ -1,0 +1,57 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+
+
+#from subprocess import check_output
+
+#print(check_output(["ls", "../input"]).decode("utf8"))
+
+
+
+# Any results you write to the current directory are saved as output.
+# Data Exploration
+
+
+
+df = pd.read_csv("../input/data.csv")
+
+df.head()
+df['diagnosis'].unique()
+# Data Preprocessing
+
+
+
+# Remove data that are not useful
+
+df.drop('id',axis=1,inplace=True)
+
+df.drop('Unnamed: 32',axis=1,inplace=True)
+
+
+
+# Replace diagnosis data with numerical labels
+
+df['diagnosis'] = df['diagnosis'].map({'M':1,'B':0})
+
+
+
+# Check the new dataset
+
+df.head()
+df.describe()

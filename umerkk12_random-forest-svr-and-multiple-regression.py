@@ -1,0 +1,108 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import missingno as msno
+df = pd.read_csv('../input/insurance/insurance.csv')
+df.head()
+msno.matrix(df)
+df[df.isnull()].count()
+df.info()
+df.describe()
+df.head()
+Male = pd.get_dummies(df['sex'], drop_first=True)
+df = pd.concat([df, Male], axis=1 )
+Smoker = pd.get_dummies(df['smoker'], drop_first=True)
+df = pd.concat([df, Smoker], axis=1 )
+df = df.rename(columns={'yes':'Smoker'})
+df['region'].unique()
+region = pd.get_dummies(df['region'])
+df = pd.concat([df, region], axis=1 )
+#df.drop('region', axis=1,inplace=True)
+#df.drop(['sex','smoker'], axis=1, inplace=True)
+df.head()
+plt.figure(figsize=(12,6))
+sns.set_style('white')
+sns.countplot(x='sex', data = df, palette='GnBu')
+sns.despine(left=True)
+
+plt.figure(figsize=(14,10))
+sns.set_style('white')
+sns.boxplot(x='sex', y='charges', data = df, palette='OrRd', hue='Smoker')
+sns.despine(left=True)
+
+fig, ax =plt.subplots(nrows= 1, ncols = 3, figsize= (14,6))
+sns.scatterplot(x='age', y='charges', data = df, palette='coolwarm', hue='sex', ax=ax[0])
+sns.scatterplot(x='age', y='charges', data = df, palette='GnBu', hue='Smoker', ax=ax[1])
+sns.scatterplot(x='age', y='charges', data = df, palette='magma_r', hue='region', ax=ax[2])
+sns.set_style('dark')
+sns.despine(left=True)
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+fig, ax =plt.subplots(nrows= 1, ncols = 2, figsize= (14,6))
+sns.boxplot(x='region', y='charges', data = df, palette='GnBu', hue='Smoker', ax=ax[0])
+sns.boxplot(x='region', y='charges', data = df, palette='coolwarm', hue='sex', ax=ax[1])
+fig, ax =plt.subplots(nrows= 1, ncols = 2, figsize= (14,6))
+sns.scatterplot(x='bmi', y='charges', data = df, palette='GnBu_r', hue='sex', ax=ax[0])
+sns.scatterplot(x='bmi', y='charges', data = df, palette='magma', hue='Smoker', ax=ax[1])
+sns.set_style('dark')
+sns.despine(left=True)
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+df.drop(['sex', 'region', 'smoker', 'southwest'], axis=1, inplace=True)
+df.head()
+plt.figure(figsize=(16,6))
+sns.heatmap(df.corr(), cmap='OrRd')
+X=df.drop('charges', axis=1)
+y=df['charges']
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size = 0.4)
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+scaled_x_train = scaler.fit_transform(X_train)
+scaled_x_test = scaler.transform(X_test)
+from sklearn.ensemble import RandomForestRegressor
+rfr = RandomForestRegressor(n_estimators=300)
+rfr.fit(scaled_x_train, y_train)
+predict = rfr.predict(scaled_x_test)
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+mean_absolute_error(y_test, predict)
+
+np.sqrt(mean_squared_error(y_test, predict))
+from sklearn.linear_model import LinearRegression
+lr=LinearRegression()
+lr.fit(scaled_x_train, y_train)
+predict2 = lr.predict(scaled_x_test)
+mean_absolute_error(y_test, predict2)
+np.sqrt(mean_squared_error(y_test, predict2))
+from sklearn.svm import SVR
+regressor = SVR(kernel = 'rbf')
+regressor.fit(scaled_x_train, y_train)
+predict3 = regressor.predict(scaled_x_test)
+mean_absolute_error(y_test, predict3)
+np.sqrt(mean_squared_error(y_test, predict3))
+fig, ax = plt.subplots(1,3, figsize=(16,6))
+sns.set_style('dark')
+g = sns.scatterplot(predict,y_test, ax=ax[0], color='red')
+g.set_title('Random Forest Regressor')
+g.set_xlabel('Predict')
+
+sns.set_style('dark')
+h = sns.scatterplot(predict2,y_test, ax=ax[1], color='green')
+h.set_title('Mutliple Linear Regression')
+h.set_xlabel('Predict')
+
+
+sns.set_style('dark')
+f = sns.scatterplot(predict3,y_test, ax=ax[2])
+f.set_title('Support Vector Regression')
+f.set_xlabel('Predict')
+
+
+entry_1 = df[:][257:477].drop('charges', axis=1)
+pred = rfr.predict(entry_1)
+np.sqrt(mean_squared_error(df[:][257:477]['charges'], pred))
+entry_1 = df[:][257:477].drop('charges', axis=1)
+pred = lr.predict(entry_1)
+np.sqrt(mean_squared_error(df[:][257:477]['charges'], pred))
+entry_1 = df[:][257:477].drop('charges', axis=1)
+pred = regressor.predict(entry_1)
+np.sqrt(mean_squared_error(df[:][257:477]['charges'], pred))

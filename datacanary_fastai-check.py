@@ -1,0 +1,2 @@
+import fastai
+fastai.__package__

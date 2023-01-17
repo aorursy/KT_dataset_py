@@ -1,0 +1,56 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import numpy as np # linear algebra
+
+import matplotlib 
+
+import matplotlib.pyplot as plt
+
+import sklearn
+
+%matplotlib inline
+
+import matplotlib.pyplot as plt 
+
+plt.rcParams["figure.figsize"] = [16, 12]
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+
+
+from subprocess import check_output
+
+print(check_output(["ls", "../input"]).decode("utf8"))
+
+
+
+# Any results you write to the current directory are saved as output.
+
+filename = check_output(["ls", "../input"]).decode("utf8").strip()
+
+df = pd.read_csv("../input/" + filename, thousands=",")
+
+print(df.dtypes)
+
+df.head()
+df['children'].unique()
+df['children'] = df['children']=='yes'
+df.head()
+df['affairs'].unique()
+df.describe()
+df.plot(x = 'yearsmarried', y = 'affairs', kind = 'hexbin')
+df.groupby('religiousness').mean() # less religious = cheat more?
+df.groupby('education').mean() # less education = cheat more?
+df.groupby('children').mean() # people with children cheat more?
+df.groupby('occupation').mean() # occupation group "2" cheats the least
+df.groupby('rating').mean() # low rating = cheat more

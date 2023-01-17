@@ -1,0 +1,1 @@
+print("acaba oldumu?")

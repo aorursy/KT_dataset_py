@@ -1,0 +1,129 @@
+# Create a 3x3 tic tac toe board of "" strings for each value
+board = [' '] * 9
+def display_board(board):
+    print ('   |   |')
+    print(' ' + board[0] + ' | ' + board[1] + ' | ' + board[2])
+    print('   |   |')
+    print('-----------')
+    print('   |   |')
+    print(' ' + board[3] + ' | ' + board[4] + ' | ' + board[5])
+    print('   |   |')
+    print('-----------')
+    print('   |   |')
+    print(' ' + board[6] + ' | ' + board[7] + ' | ' + board[8])
+    print('   |   |')
+    print('-----------')
+display_board(board)
+#Create a function to check if anyone won, Use marks "X" or "O"
+def check_win(mark, board):
+    
+        return  ((board[6] == mark and board[7] == mark and board[8] == mark) or 
+        (board[3] == mark and board[4] == mark and board[5] == mark) or 
+        (board[0] == mark and board[1] == mark and board[2] == mark) or
+        (board[6] == mark and board[3] == mark and board[0] == mark) or 
+        (board[7] == mark and board[4] == mark and board[1] == mark) or 
+        (board[8] == mark and board[5] == mark and board[2] == mark) or 
+        (board[6] == mark and board[4] == mark and board[2] == mark) or 
+        (board[8] == mark and board[4] == mark and board[0] == mark)) 
+
+check_win('X', board)
+# Create a function to check its a Draw
+def check_draw(board):
+        return ' ' not in board
+# Create a Function that makes a copy of the board
+def board_copy(board):
+    dupeBoard = []
+
+    for i in board:
+        dupeBoard.append(i)
+
+    return dupeBoard
+        
+#Immediate move checker
+def test_win_move(move, player_mark, board):
+    bCopy = board_copy(board)
+    bCopy[move] = player_mark
+    return check_win(player_mark, bCopy)
+#Strategy if others fail
+def win_strategy(board):
+    # Play centre
+    if board[4] == ' ':
+        return 4
+    # Play a corner
+    for i in [0, 2, 6, 8]:
+        if board[i] == ' ':
+            return i
+    #Play a side
+    for i in [1, 3, 5, 7]:
+        if board[i] == ' ':
+            return i
+# Agents move
+def get_agent_move(board):
+    # Return agent move with your strategy
+    # Check Agent win and Player win
+    for i in range(0, 9):
+        if board[i] == ' ' and test_win_move(board, 'X', i):
+            return i
+    # Check player win moves
+    for i in range(0, 9):
+        if board[i] == ' ' and test_win_move(board, '0', i):
+            return i
+     
+    
+    # Final Strategy
+    win_strategy(board)
+# Assemble the game
+def tictactoe():
+    ### Note you need to recreate your board again here if you wish to play the game more than once
+    Playing = True
+    while Playing:
+        InGame = True
+        board = [' '] * 9
+        print('Would you like to go first or second? (1/2)')
+        if input() == '1':
+            playerMarker = '0'
+        else:
+            playerMarker = 'X'
+        display_board(board)
+
+        while InGame:
+            if playerMarker == '0':
+                print('Player go: (0-8)')
+                move = int(input())
+                if board[move] != ' ':
+                    print('Invalid move!')
+                    continue
+            else:
+                move = get_agent_move(board)
+            board[move] = playerMarker
+            if check_win(playerMarker,board):
+                InGame = False
+                display_board(board)
+                if playerMarker == '0':
+                    print('Noughts won!')
+                else:
+                    print('Crosses won!')
+                continue
+            if check_draw(board):
+                InGame = False
+                display_board(board)
+                print('It was a draw!')
+                continue
+            display_board(board)
+            if playerMarker == '0':
+                playerMarker = 'X'
+            else:
+                playerMarker = '0'
+
+        print('Type y to keep playing')
+        inp = input()
+        if inp != 'y' and inp != 'Y':
+            Playing = False
+class Tic_Tac_Toe:
+    def __init__(self):
+        pass
+# Play!!!
+tictactoe()
+class Tic_Tac_Toe:
+    def __init__(self):
+        pass

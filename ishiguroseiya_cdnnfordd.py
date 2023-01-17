@@ -1,0 +1,320 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load in 
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+
+
+# Input data files are available in the "../input/" directory.
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# Any results you write to the current directory are saved as output.
+import glob
+
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+
+from keras.utils.np_utils import to_categorical
+
+
+
+img_size = (224, 224)
+
+img_array_list = []
+
+cls_list = []
+
+
+
+img_list1 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class1/*.png')
+
+for i in img_list1:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(0)
+
+    
+
+img_list1 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class1_def/*.png')
+
+for i in img_list1:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(1)
+
+
+
+X_train1 = np.array(img_array_list)
+
+y_train1 = to_categorical(np.array(cls_list))
+from tensorflow.keras.models import Sequential
+
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
+
+from tensorflow.keras.metrics import AUC
+
+
+
+model = Sequential()
+
+model.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu', input_shape=(img_size[0], img_size[1], 1)))
+
+model.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+
+model.add(MaxPooling2D(pool_size=(3, 3)))
+
+model.add(Dropout(rate=0.25))
+
+
+
+model.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+
+model.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+
+model.add(MaxPooling2D(pool_size=(3, 3)))
+
+model.add(Dropout(rate=0.25))
+
+
+
+model.add(Flatten())
+
+model.add(Dense(units=128, activation='relu'))
+
+model.add(Dropout(rate=0.25))
+
+
+
+model.add(Dense(units=2, activation='softmax'))
+
+
+
+auc = AUC()
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy', auc])
+
+model.summary()
+model.fit(X_train1, y_train1, epochs=50)
+img_list2 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class2/*.png')
+
+for i in img_list2:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(0)
+
+    
+
+img_list2 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class2_def/*.png')
+
+for i in img_list2:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(1)
+
+    
+
+X_train2 = np.array(img_array_list)
+
+y_train2 = to_categorical(np.array(cls_list))
+model.fit(X_train2, y_train2, epochs=50)
+img_list3 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class3/*.png')
+
+for i in img_list3:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(0)
+
+    
+
+img_list3 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class3_def/*.png')
+
+for i in img_list3:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(1)
+
+    
+
+X_train3 = np.array(img_array_list)
+
+y_train3 = to_categorical(np.array(cls_list))
+model.fit(X_train3, y_train3, epochs=50)
+img_list4 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class4/*.png')
+
+for i in img_list4:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(0)
+
+    
+
+img_list4 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class4_def/*.png')
+
+for i in img_list4:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(1)
+
+    
+
+X_train4 = np.array(img_array_list)
+
+y_train4 = to_categorical(np.array(cls_list))
+model.fit(X_train4, y_train4, epochs=50)
+img_list5 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class5/*.png')
+
+for i in img_list5:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(0)
+
+    
+
+img_list5 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class5_def/*.png')
+
+for i in img_list5:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(1)
+
+    
+
+X_train5 = np.array(img_array_list)
+
+y_train5 = to_categorical(np.array(cls_list))
+model.fit(X_train5, y_train5, epochs=50)
+img_list6 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class6/*.png')
+
+for i in img_list6:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(0)
+
+    
+
+img_list6 = glob.glob('/kaggle/input/1056lab-defect-detection-extra/train/Class6_def/*.png')
+
+for i in img_list6:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+    cls_list.append(1)
+
+    
+
+X_train6 = np.array(img_array_list)
+
+y_train6 = to_categorical(np.array(cls_list))
+model.fit(X_train6, y_train6, epochs=50)
+import glob
+
+from keras.preprocessing.image import load_img, img_to_array
+
+
+
+img_array_list = []
+
+
+
+img_list = glob.glob('/kaggle/input/1056lab-defect-detection-extra/test/*.png')
+
+img_list.sort()
+
+for i in img_list:
+
+    img = load_img(i, color_mode='grayscale', target_size=(img_size))
+
+    img_array = img_to_array(img) / 255
+
+    img_array_list.append(img_array)
+
+
+
+X_test = np.array(img_array_list)
+predict = model.predict(X_test)[:, 1]
+
+
+
+submit = pd.read_csv('/kaggle/input/1056lab-defect-detection-extra/sampleSubmission.csv')
+
+submit['defect'] = predict
+
+submit.to_csv('submissionCDNN.csv', index=False)

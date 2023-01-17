@@ -1,0 +1,1 @@
+print('Thank you for reading my notebook! Leave an upvote or fork it if you found it helpful.')

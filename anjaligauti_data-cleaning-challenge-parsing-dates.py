@@ -1,0 +1,116 @@
+# modules we'll use
+
+import pandas as pd
+
+import numpy as np
+
+import seaborn as sns
+
+import datetime
+
+
+
+# read in our data
+
+earthquakes = pd.read_csv("../input/earthquake-database/database.csv")
+
+landslides = pd.read_csv("../input/landslide-events/catalog.csv")
+
+volcanos = pd.read_csv("../input/volcanic-eruptions/database.csv")
+
+
+
+# set seed for reproducibility
+
+np.random.seed(0)
+#Just Checking the structure of the datasets
+
+earthquakes.info()
+
+landslides.info()
+
+volcanos.info()
+# print the first few rows of the date column
+
+print(landslides['date'].head())
+# check the data type of our date column
+
+landslides['date'].dtype
+# Your turn! Check the data type of the Date column in the earthquakes dataframe
+
+earthquakes['Date'].dtype
+
+# (note the capital 'D' in date!)
+
+# create a new column, date_parsed, with the parsed dates
+
+landslides['date_parsed'] = pd.to_datetime(landslides['date'], format = "%m/%d/%y")
+# print the first few rows
+
+landslides['date_parsed'].head()
+earthquakes.columns
+
+earthquakes['Date'].head(10)
+# Your turn! Create a new column, date_parsed, in the earthquakes
+
+earthquakes['date_parsed']=pd.to_datetime(earthquakes['Date'],format='%m/%d/%Y')
+
+# dataset that has correctly parsed dates in it. (Don't forget to 
+
+# double-check that the dtype is correct!)
+
+earthquakes.date_parsed.dtype
+
+#We see that there is an entry in earthquakes Date column which is not in the proper date format
+
+# We have to use pandas infer date feature to convert type of earthquake's Date column
+
+
+
+earthquakes['date_parsed']=pd.to_datetime(earthquakes.Date,infer_datetime_format =True)
+
+
+
+# check the type of new column now
+
+earthquakes['date_parsed'].dtype
+# check the entries in the new column
+
+earthquakes['date_parsed'].head(10)
+# try to get the day of the month from the date column
+
+day_of_month_landslides = landslides['date'].dt.day
+# get the day of the month from the date_parsed column
+
+day_of_month_landslides = landslides['date_parsed'].dt.day
+# View Output
+
+day_of_month_landslides.head(10)
+# Your turn! get the day of the month from the date_parsed column
+
+
+
+day_of_month_earthquakes = earthquakes.date_parsed.dt.day
+
+earthquakes.date_parsed.head(5)
+
+day_of_month_earthquakes.head(5)
+# remove na's
+
+day_of_month_landslides = day_of_month_landslides.dropna()
+
+
+
+# plot the day of the month
+
+sns.distplot(day_of_month_landslides, kde=False, bins=31)
+# Your turn! Plot the days of the month from your
+
+day_of_month_earthquakes.isnull().sum()
+
+sns.distplot(day_of_month_earthquakes,kde=False,bins=31)
+
+# earthquake dataset and make sure they make sense.
+
+help(sns.distplot)
+volcanos['Last Known Eruption'].sample(5)

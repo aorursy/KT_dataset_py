@@ -1,0 +1,604 @@
+
+"""Implementation of Rapid Automatic Keyword Extraction algorithm.
+As described in the paper `Automatic keyword extraction from individual
+documents` by Stuart Rose, Dave Engel, Nick Cramer and Wendy Cowley.
+"""
+import re
+import string
+from collections import Counter, defaultdict
+from itertools import chain, groupby, product
+
+import nltk
+from enum import Enum
+from nltk.tokenize import wordpunct_tokenize
+
+
+class Metric(Enum):
+    """Different metrics that can be used for ranking."""
+
+    DEGREE_TO_FREQUENCY_RATIO = 0  # Uses d(w)/f(w) as the metric
+    WORD_DEGREE = 1  # Uses d(w) alone as the metric
+    WORD_FREQUENCY = 2  # Uses f(w) alone as the metric
+
+
+class Rake(object):
+    """Rapid Automatic Keyword Extraction Algorithm."""
+
+    def __init__(
+        self,
+        stopwords=None,
+        punctuations=None,
+        language="english",
+        ranking_metric=Metric.DEGREE_TO_FREQUENCY_RATIO,
+        max_length=4,
+        min_length=1,
+    ):
+        """Constructor.
+        :param stopwords: List of Words to be ignored for keyword extraction.
+        :param punctuations: Punctuations to be ignored for keyword extraction.
+        :param language: Language to be used for stopwords
+        :param max_length: Maximum limit on the number of words in a phrase
+  
+        :param min_length: Minimum limit on the number of words in a phrase
+
+        """
+        # By default use degree to frequency ratio as the metric.
+        if isinstance(ranking_metric, Metric):
+            self.metric = ranking_metric
+        else:
+            self.metric = Metric.DEGREE_TO_FREQUENCY_RATIO
+
+        # If stopwords not provided we use language stopwords by default.
+        self.stopwords = stopwords
+        if self.stopwords is None:
+            self.stopwords = []
+            stop_word_file='/kaggle/input/smartstoplists/SmartStoplist.txt'
+            for line in open(stop_word_file):
+                if line.strip()[0:1] != "#":
+                    for word in line.split():  # in case more than one per line
+                        self.stopwords.append(word)
+                #self.stopwords = nltk.corpus.stopwords.words(language)
+
+
+        # If punctuations are not provided we ignore all punctuation symbols.
+        self.punctuations = punctuations
+        if self.punctuations is None:
+            self.punctuations = string.punctuation
+
+        # All things which act as sentence breaks during keyword extraction.
+        self.to_ignore = set(chain(self.stopwords, self.punctuations))
+
+        # Assign min or max length to the attributes
+        self.min_length = min_length
+        self.max_length = max_length
+
+        # Stuff to be extracted from the provided text.
+        self.frequency_dist = None
+        self.degree = None
+        self.rank_list = None
+        self.ranked_phrases = None
+
+    def extract_keywords_from_text(self, text):
+        """Method to extract keywords from the text provided.
+        :param text: Text to extract keywords from, provided as a string.
+        """
+        sentences = nltk.tokenize.sent_tokenize(text)
+        self.extract_keywords_from_sentences(sentences)
+
+    def extract_keywords_from_sentences(self, sentences):
+        """Method to extract keywords from the list of sentences provided.
+        :param sentences: Text to extraxt keywords from, provided as a list
+                          of strings, where each string is a sentence.
+        """
+        sentence_delimiters = re.compile(u'[\\[\\]\n.!?,;:\t\\-\\"\\(\\)\\\'\u2019\u2013]')
+        sentences = sentence_delimiters.split(text)
+        phrase_list = self._generate_phrases(sentences)
+        self._build_frequency_dist(phrase_list)
+        self._build_word_co_occurance_graph(phrase_list)
+        self._build_ranklist(phrase_list)
+
+    def get_ranked_phrases(self):
+        """Method to fetch ranked keyword strings.
+        :return: List of strings where each string represents an extracted
+                 keyword string.
+        """
+        return self.ranked_phrases
+
+    def get_ranked_phrases_with_scores(self):
+        """Method to fetch ranked keyword strings along with their scores.
+        """
+        return self.rank_list
+
+    def get_word_frequency_distribution(self):
+        """Method to fetch the word frequency distribution in the given text.
+        """
+        return self.frequency_dist
+
+    def get_word_degrees(self):
+        """Method to fetch the degree of words in the given text. Degree can be
+        defined as sum of co-occurances of the word with other words in the
+        given text.
+        """
+        return self.degree
+
+    def _build_frequency_dist(self, phrase_list):
+        """Builds frequency distribution of the words in the given body of text.
+        :param phrase_list: List of List of strings where each sublist is a
+                            collection of words which form a contender phrase.
+        """
+        self.frequency_dist = Counter(chain.from_iterable(phrase_list))
+
+    def _build_word_co_occurance_graph(self, phrase_list):
+        """Builds the co-occurance graph of words in the given body of text to
+        compute degree of each word.
+        :param phrase_list: List of List of strings where each sublist is a
+                            collection of words which form a contender phrase.
+        """
+        co_occurance_graph = defaultdict(lambda: defaultdict(lambda: 0))
+        for phrase in phrase_list:
+            # For each phrase in the phrase list, count co-occurances of the
+            # word with other words in the phrase.
+            #
+            # Note: Keep the co-occurances graph as is, to help facilitate its
+            # use in other creative ways if required later.
+            for (word, coword) in product(phrase, phrase):
+                co_occurance_graph[word][coword] += 1
+        self.degree = defaultdict(lambda: 0)
+        for key in co_occurance_graph:
+            self.degree[key] = sum(co_occurance_graph[key].values())
+
+    def _build_ranklist(self, phrase_list):
+        """Method to rank each contender phrase using the formula
+              phrase_score = sum of scores of words in the phrase.
+              word_score = d(w)/f(w) where d is degree and f is frequency.
+        :param phrase_list: List of List of strings where each sublist is a
+                            collection of words which form a contender phrase.
+        """
+        self.rank_list = []
+        for phrase in phrase_list:
+            rank = 0.0
+            for word in phrase:
+                if self.metric == Metric.DEGREE_TO_FREQUENCY_RATIO:
+                    rank += 1.0 * self.degree[word] / self.frequency_dist[word]
+                elif self.metric == Metric.WORD_DEGREE:
+                    rank += 1.0 * self.degree[word]
+                else:
+                    rank += 1.0 * self.frequency_dist[word]
+            self.rank_list.append((rank, " ".join(phrase)))
+        self.rank_list.sort(reverse=True)
+        self.ranked_phrases = [ph[1] for ph in self.rank_list]
+
+    def _generate_phrases(self, sentences):
+        """Method to generate contender phrases given the sentences of the text
+        document.
+        :param sentences: List of strings where each string represents a
+                          sentence which forms the text.
+        :return: Set of string tuples where each tuple is a collection
+                 of words forming a contender phrase.
+        """
+        phrase_list = set()
+        # Create contender phrases from sentences.
+        for sentence in sentences:
+            word_list = [word.lower() for word in wordpunct_tokenize(sentence)]
+            phrase_list.update(self._get_phrase_list_from_words(word_list))
+        return phrase_list
+
+    def _get_phrase_list_from_words(self, word_list):
+        """Method to create contender phrases from the list of words that form
+        a sentence by dropping stopwords and punctuations and grouping the left
+        words into phrases. Only phrases in the given length range (both limits
+        inclusive) would be considered to build co-occurrence matrix.
+        :param word_list: List of words which form a sentence when joined in
+                          the same order.
+        :return: List of contender phrases that are formed after dropping
+                 stopwords and punctuations.
+        """
+        groups = groupby(word_list, lambda x: x not in self.to_ignore)
+        phrases = [tuple(group[1]) for group in groups if group[0]]
+        return list(
+            filter(
+                lambda x: self.min_length <= len(x) <= self.max_length, phrases
+            )
+)
+r = Rake()
+text='A compiler is a computer program that translates computer code written in one programming language (the source language) into another language (the target language). The name compiler is primarily used for programs that translate source code from a high-level programming language to a lower level language (e.g., assembly language, object code, or machine code) to create an executable program.A compiler is likely to perform many or all of the following operations: preprocessing, lexical analysis, parsing, semantic analysis (syntax-directed translation), conversion of input programs to an intermediate representation, code optimization and code generation. Compilers implement these operations in phases that promote efficient design and correct transformations of source input to target output. Program faults caused by incorrect compiler behavior can be very difficult to track down and work around; therefore, compiler implementers invest significant effort to ensure compiler correctness.'
+r.extract_keywords_from_text(text)
+r.get_ranked_phrases_with_scores()
+from collections import OrderedDict
+import numpy as np
+import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
+
+nlp = spacy.load('en_core_web_sm')
+
+class TextRank4Keyword():
+    """Extract keywords from text"""
+    
+    def __init__(self):
+        self.d = 0.85 # damping coefficient, usually is .85
+        self.min_diff = 1e-5 # convergence threshold
+        self.steps = 10 # iteration steps
+        self.node_weight = None # save keywords and its weight
+
+    
+    def set_stopwords(self, stopwords):  
+        """Set stop words"""
+        for word in STOP_WORDS.union(set(stopwords)):
+            lexeme = nlp.vocab[word]
+            lexeme.is_stop = True
+    
+    def sentence_segment(self, doc, candidate_pos, lower):
+        """Store those words only in cadidate_pos"""
+        sentences = []
+        for sent in doc.sents:
+            selected_words = []
+            for token in sent:
+                # Store words only with cadidate POS tag
+                if token.pos_ in candidate_pos and token.is_stop is False:
+                    if lower is True:
+                        selected_words.append(token.text.lower())
+                    else:
+                        selected_words.append(token.text)
+            sentences.append(selected_words)
+        return sentences
+        
+    def get_vocab(self, sentences):
+        """Get all tokens"""
+        vocab = OrderedDict()
+        i = 0
+        for sentence in sentences:
+            for word in sentence:
+                if word not in vocab:
+                    vocab[word] = i
+                    i += 1
+        return vocab
+    
+    def get_token_pairs(self, window_size, sentences):
+        """Build token_pairs from windows in sentences"""
+        token_pairs = list()
+        for sentence in sentences:
+            for i, word in enumerate(sentence):
+                for j in range(i+1, i+window_size):
+                    if j >= len(sentence):
+                        break
+                    pair = (word, sentence[j])
+                    if pair not in token_pairs:
+                        token_pairs.append(pair)
+        return token_pairs
+        
+    def symmetrize(self, a):
+        return a + a.T - np.diag(a.diagonal())
+    
+    def get_matrix(self, vocab, token_pairs):
+        """Get normalized matrix"""
+        # Build matrix
+        vocab_size = len(vocab)
+        g = np.zeros((vocab_size, vocab_size), dtype='float')
+        for word1, word2 in token_pairs:
+            i, j = vocab[word1], vocab[word2]
+            g[i][j] = 1
+            
+        # Get Symmeric matrix
+        g = self.symmetrize(g)
+        
+        # Normalize matrix by column
+        norm = np.sum(g, axis=0)
+        g_norm = np.divide(g, norm, where=norm!=0) # this is ignore the 0 element in norm
+        
+        return g_norm
+
+    
+    def get_keywords(self, number=10):
+        """Print top number keywords"""
+        node_weight = OrderedDict(sorted(self.node_weight.items(), key=lambda t: t[1], reverse=True))
+        for i, (key, value) in enumerate(node_weight.items()):
+            print(key + ' - ' + str(value))
+            if i > number:
+                break
+        
+        
+    def analyze(self, text, 
+                candidate_pos=['NOUN', 'PROPN'], 
+                window_size=4, lower=False, stopwords=list()):
+        """Main function to analyze text"""
+        
+        # Set stop words
+        self.set_stopwords(stopwords)
+        
+        # Pare text by spaCy
+        doc = nlp(text)
+        
+        # Filter sentences
+        sentences = self.sentence_segment(doc, candidate_pos, lower) # list of list of words
+        
+        # Build vocabulary
+        vocab = self.get_vocab(sentences)
+        
+        # Get token_pairs from windows
+        token_pairs = self.get_token_pairs(window_size, sentences)
+        
+        # Get normalized matrix
+        g = self.get_matrix(vocab, token_pairs)
+        
+        # Initionlization for weight(pagerank value)
+        pr = np.array([1] * len(vocab))
+        
+        # Iteration
+        previous_pr = 0
+        for epoch in range(self.steps):
+            pr = (1-self.d) + self.d * np.dot(g, pr)
+            if abs(previous_pr - sum(pr))  < self.min_diff:
+                break
+            else:
+                previous_pr = sum(pr)
+
+        # Get weight for each node
+        node_weight = dict()
+        for word, index in vocab.items():
+            node_weight[word] = pr[index]
+        
+        self.node_weight = node_weight
+tr4w = TextRank4Keyword()
+tr4w.analyze(text, candidate_pos = ['NOUN', 'PROPN'], window_size=4, lower=False)
+tr4w.get_keywords(10)
+
+
+!pip install fitz
+!pip install PyMuPDF
+import sys
+import fitz
+import os
+import re 
+import csv
+
+     
+with open('keywords.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(["filename", "filetype", "keyword"])
+
+for root, dirs, files in os.walk("/kaggle/input/fileuploads"):
+    for filename in files:
+        path='/kaggle/input/fileuploads/'+filename
+        try:
+            doc = fitz.open(path)  
+            i=1
+            keywordList = []
+            print(filename+" : ")
+            for page in doc:
+                #using RAKE
+                pgno=str(i)
+                print("page :",pgno)
+                text=page.getText()
+                r = Rake()
+                r.extract_keywords_from_sentences(text)
+                keywords=r.get_ranked_phrases_with_scores()
+                if(len(keywords)) > 10:
+                    for j in range(10):
+                        tmp=keywords[j]
+                        key=re.sub(r'[^\w]', ' ',str(tmp[1])) 
+                
+                        keywordList.append(key)
+                        #print(str(key))
+                else:
+                    if len(keywords)!=0:
+                        for j in keywords:
+                            key=re.sub(r'[^\w]', ' ',str(j[0])) 
+                            with open('keywords.csv', 'a', newline='') as file:
+                                writer = csv.writer(file)
+                                writer.writerow([filename, "pdf", key])
+                            keywordList.append(key)
+                            #print(key)
+                
+                print(keywordList)
+                print(len(keywordList))
+                #using textRank
+                tr4w = TextRank4Keyword()
+                tr4w.analyze(text, candidate_pos = ['NOUN', 'PROPN'], window_size=4, lower=False)
+                node_weight = OrderedDict(sorted(tr4w.node_weight.items(), key=lambda t: t[1], reverse=True))
+                for k, (key, value) in enumerate(node_weight.items()):
+                    if len(keywordList) >= 25:
+                        break
+                    if key not in keywordList:
+
+                        keywordList.append(key)  
+                    len(keywordList)
+                    
+                
+                i+=1
+            doc.close()
+            print(keywordList)
+            print(len(keywordList))
+            with open('keywords.csv', 'a', newline='') as file:  
+                writer = csv.writer(file)
+                writer.writerow([filename, "pdf", str(keywordList)])
+            
+        except Exception as e:
+            emsg=str(e)
+            doc.close()
+            print(e)
+                        
+
+        
+import os
+import cv2
+import tempfile
+import subprocess
+def ocr(path):
+    temp = tempfile.NamedTemporaryFile(delete=False)
+
+    process = subprocess.Popen(['tesseract', path, temp.name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process.communicate()
+
+    with open(temp.name + '.txt', 'r') as handle:
+        contents = handle.read()
+
+    os.remove(temp.name + '.txt')
+    os.remove(temp.name)
+
+    return contents
+for root, dirs, files in os.walk("/kaggle/input/abcdefg"):
+    for filename in files:
+        path='/kaggle/input/abcdefg/test.mp4'
+        filename = 'test'
+        cam = cv2.VideoCapture(path)
+        currentframe = 0
+        ar=[]
+        
+        while(True): 
+          # reading from frame 
+                ret,frame = cam.read() 
+                if ret: 
+                    if currentframe%100==0:
+                        # if video is still left continue creating images 
+                        name='frame.jpg'
+                        # writing the extracted images 
+                        cv2.imwrite(name, frame)
+                        #img=cv2.imread('./frame.jpg')
+                        #text=pytesseract.image_to_string(img)
+                        text=ocr(name)
+                        #print(text)
+                        i=1
+                        print("Extracting frame: "+str(currentframe))
+                        r = Rake()
+                        r.extract_keywords_from_sentences(text)
+                        keywords=r.get_ranked_phrases_with_scores()
+                        i+=1
+                        if(len(keywords)) > 5:
+                            for j in range(5):
+                                tmp=keywords[j]
+                                print(str(tmp))
+                                key=re.sub(r'[^\w]', ' ',str(tmp[1]))         
+                                if key not in ar:
+                                    
+                                    ar.append(key)
+                        else:
+                            if len(keywords)!=0:
+                                for j in keywords:
+                                    print(str(j))
+                                    key=re.sub(r'[^\w]', ' ',str(j[1]))
+                                    if key not in ar:
+                                        
+                                        ar.append(key)
+
+
+
+                    currentframe =currentframe+1
+
+                else: 
+                    with open('keywords.csv', 'a', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerow([filename, "video", str(ar)])
+                    print(ar)
+                    break
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+import pickle
+
+with open("../input/pickled-glove840b300d-for-10sec-loading/glove.840B.300d.pkl","rb") as f:
+    embeddings_dict_glove = pickle.load(f)
+    
+print(len(embeddings_dict_glove))
+import pandas as pd
+
+stop_words=[]
+stop_word_file='/kaggle/input/smartstoplists/SmartStoplist.txt'
+for line in open(stop_word_file):
+    if line.strip()[0:1] != "#":
+        for word in line.split():  # in case more than one per line
+            stop_words.append(str(word))
+col_names = ['filename','filetype','keyword']
+df = pd.read_csv("keywords.csv", names=col_names)
+filenames = (df.filename).tolist()
+filetypes = (df.filetype).tolist()
+#keywords_extracted = (df.keyword).tolist()
+keywords_extracted = df['keyword']
+print (keywords_extracted)
+
+
+qns = ["Which are the nine planets", 
+      "Which all are the animal species in forest",
+      "A game with bat and ball",
+      "J K Rowling's novel based film series",
+      "What are the 7 wonders of the world",
+      "What is Greek Mythology",
+      "Who is Princess of Wales",
+      "Russian Nuclear disaster",
+      "One Kerala festival",
+      "Virus infection 2019",
+      "A 8*8 grid board game",
+      "Translates computer code written",
+      "First black president of United State ",
+      "Nothern lights",
+      "Quit india movement"]
+qn_vectors = []
+query_vec = np.zeros((300,))
+keyvector = np.zeros((300,))
+
+for qn in qns:
+    number = 0
+    for word in qn.split():
+        if word not in stop_words:
+            if embeddings_dict_glove.get(word) is not None:
+                query_vec = query_vec + embeddings_dict_glove.get(word)
+                number = number + 1
+    if number!=0:
+        query_vec = query_vec/number
+        #qnvector=np.array(query_vec)
+        qn_vectors.append(query_vec)
+    
+with open('qnToPdfMap.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(["Question", "FileName", "FileType"])
+qNum = 0 
+
+for qnvector in qn_vectors:
+    m=-1
+    docNum=0
+    mfilename=''
+    mfiletype=''
+    for doc in keywords_extracted:
+        #print("File ",docNum,": ",filenames[docNum] )
+        #print("Doc: ",doc)
+        cosineSimSum = 0
+        numWords = 0
+        if(docNum!=0):
+            #go through all the phrases of the para
+            for phrase in doc.split("'"):
+                re.sub(' +', ' ', phrase)
+                if phrase not in ["[","]","'"," ",",",'"'," ,",", "," , "]:
+                    #print("Phrase: ", phrase)
+                    for word in phrase.split():
+                        if word not in stop_words:
+                            if embeddings_dict_glove.get(word) is not None:
+                                #print("word: ", word)
+                                keyvector = embeddings_dict_glove.get(word)     
+                                cosinesim = np.sum(qnvector*keyvector)/(np.sqrt(np.sum(qnvector**2))*np.sqrt(np.sum(keyvector**2)))
+                                cosineSimSum += cosinesim
+                                numWords +=1
+        #if avg of cosine sim of all keywords in the para is great
+        if (numWords!=0) and ((cosineSimSum/numWords) > m):
+            m = cosineSimSum/numWords
+            mfilename = filenames[docNum]
+            mfiletype = filetypes[docNum]
+            #print("Updated m val.","num of words: ",numWords)
+        if(numWords!=0):
+            pass
+            #print("num of words: ",numWords," Avg cosine val:",(cosineSimSum/numWords),"m val: ", m)
+        docNum+=1
+    #print(mkey)
+    print("Q: ",qns[qNum])
+    print("File: ",mfilename)
+    
+    print(" ")
+    with open('qnToPdfMap.csv', 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([qns[qNum], mfilename, mfiletype])
+    qNum = qNum + 1 

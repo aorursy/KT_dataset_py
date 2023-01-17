@@ -1,0 +1,660 @@
+VERSION = "20200516"  #@param ["1.5" , "20200516", "nightly"]
+
+!curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+
+!python pytorch-xla-env-setup.py --version $VERSION
+import gc
+
+import logging
+
+import numpy as np
+
+import os
+
+import pandas as pd
+
+import time
+
+import torch
+
+import torch.nn as nn
+
+import torch.nn.functional as F
+
+import torch.optim as optim
+
+import torch_xla
+
+import torch_xla.core.xla_model as xm
+
+import torch_xla.debug.metrics as met
+
+import torch_xla.distributed.parallel_loader as pl
+
+import torch_xla.distributed.xla_multiprocessing as xmp
+
+import torch_xla.utils.utils as xu
+
+from torch.autograd import Variable as var
+
+from torchvision import datasets, transforms
+
+import torchvision.models as models
+
+import matplotlib.pyplot as plot
+
+from torch.utils.data import Dataset
+
+from PIL import Image
+
+from glob import glob
+
+
+
+
+
+SERIAL_EXEC = xmp.MpSerialExecutor()
+
+losses_df = []
+
+logging.basicConfig(filename='./moco_tpu.log', filemode='w', format='%(levelname)s - %(message)s')
+def loadModel(model, path):
+
+    checkpoint = torch.load(path)
+
+    model.load_state_dict(checkpoint['model_state_dict'])
+
+    # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    epoch = checkpoint['epoch']
+
+    loss = checkpoint['loss']
+
+
+
+    print('Model Loaded! Epoch: ',epoch,'Loss: ',loss)
+
+    return model, epoch, loss;
+def saveModel(epoch, model, optimizer, loss, path):
+
+    torch.save({
+
+              'epoch': epoch,
+
+              'model_state_dict': model.state_dict(),
+
+              'optimizer_state_dict': optimizer.state_dict(),
+
+              'loss': loss
+
+              }, path)
+PARAMETERS = {}
+
+PARAMETERS['trained_dir'] = './data/saved/'
+
+PARAMETERS['train_dir'] = '../input/imagenetmini-1000/imagenet-mini/train'
+
+PARAMETERS['val_dir'] = '../input/imagenetmini-1000/imagenet-mini/val'
+
+PARAMETERS['model_name'] = 'resnet50'
+
+PARAMETERS['model_saved'] = 'linear_class_moco_4096_m09.pth'
+
+PARAMETERS['model_load'] = '../input/saved-models/momentum-variated-20201023T004608Z-001/momentum-variated/moco_saved_imgnet_mini_4096K_M099.pth'
+
+PARAMETERS['learning_rate'] =0.03
+
+PARAMETERS['momentum'] = 0.999
+
+PARAMETERS['epochs'] = 5
+
+PARAMETERS['weight_decay'] = 0
+
+PARAMETERS['batch_size'] = 128
+
+PARAMETERS['temperature'] = 0.07
+
+PARAMETERS['num_channels'] = 3
+
+PARAMETERS['dictionary_size'] = 4096
+
+PARAMETERS['num_workers'] = 32
+
+PARAMETERS['num_cores'] = 8
+
+PARAMETERS['log_steps'] = 20
+
+PARAMETERS['load_from_saved'] = True
+
+PARAMETERS['start_epoch'] = 1
+
+PARAMETERS['train_mode'] = False
+
+
+
+PARAMETERS['max_acc1'] = 0.0
+
+PARAMETERS['max_acc5'] = 0.0
+world_size = xm.xrt_world_size()
+
+rank = xm.get_ordinal()
+os.environ['MASTER_ADDR'] = 'localhost'
+
+os.environ['MASTER_PORT'] = '12355'
+
+torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
+device = xm.xla_device()
+train_transform = transforms.Compose([
+
+        transforms.RandomResizedCrop(size=32,scale=(0.2, 1.)),
+
+        transforms.RandomHorizontalFlip(),
+
+        transforms.ToTensor(),        
+
+        transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
+
+    ])
+
+
+
+val_transform = transforms.Compose([
+
+        transforms.Resize(36),
+
+        transforms.CenterCrop(32),
+
+        transforms.ToTensor(),        
+
+        transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
+
+    ])
+
+
+
+train_data = datasets.CIFAR10(root='./data/', train=True,
+
+                                        download=True, transform=train_transform)
+
+test_data = datasets.CIFAR10(root='./data/', train=False,
+
+                                       download=True, transform=val_transform)
+
+
+
+# train_data = datasets.ImageFolder(PARAMETERS['train_dir'], train_transform)
+
+# test_data = datasets.ImageFolder(PARAMETERS['val_dir'], val_transform)
+
+
+
+train_sampler = torch.utils.data.distributed.DistributedSampler(
+
+    train_data,
+
+    shuffle=True,
+
+    num_replicas = xm.xrt_world_size(),
+
+    rank = xm.get_ordinal())
+
+
+
+train_set = torch.utils.data.DataLoader(
+
+    train_data, 
+
+    batch_size = PARAMETERS['batch_size'],
+
+    sampler = train_sampler,
+
+    num_workers = PARAMETERS['num_workers'], 
+
+    pin_memory = True,drop_last=True)
+
+
+
+test_set = torch.utils.data.DataLoader(
+
+    test_data, 
+
+    batch_size = PARAMETERS['batch_size'],
+
+    shuffle = False,
+
+    num_workers = PARAMETERS['num_workers'],
+
+    pin_memory = True,drop_last=True)
+class EncoderModel(nn.Module):
+
+    def __init__(self, base_model_name):
+
+        super(EncoderModel, self).__init__()
+
+
+
+        if base_model_name == 'resnet50':
+
+            model = models.resnet50(pretrained=False)
+
+        elif base_model_name == 'resnet18':
+
+            model = models.resnet18(pretrained=False)
+
+        
+
+        penultimate = model.fc.weight.shape[1]
+
+        modules = list(model.children())[:-1]
+
+        self.encoder = nn.Sequential(*modules)
+
+        self.relu = nn.ReLU()
+
+        self.fc = nn.Linear(penultimate, 10);
+
+    
+
+    def forward(self,x):
+
+        x = self.encoder(x)
+
+        x = x.view(x.size(0),-1)
+
+        x = self.relu(x)
+
+        x = self.fc(x)
+
+        
+
+        return x
+N = PARAMETERS['batch_size']
+
+LR = PARAMETERS['learning_rate'] * xm.xrt_world_size()
+
+T = PARAMETERS['temperature']
+
+C = PARAMETERS['num_channels']
+
+K = PARAMETERS['dictionary_size']
+
+m = PARAMETERS['momentum']
+def accuracy(output, target, topk=(1,)):
+
+    with torch.no_grad():
+
+        maxk = max(topk)
+
+        batch_size = target.size(0)
+
+
+
+        _, pred = output.topk(maxk, 1, True, True)
+
+        pred = pred.t()
+
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+
+
+        res = []
+
+        for k in topk:
+
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+
+            res.append(correct_k.mul_(100.0 / batch_size))
+
+        return res
+class EpochAccuracy(object):
+
+
+
+    def __init__(self, acc_type):
+
+        self.val = 0
+
+        self.avg = 0
+
+        self.sum = 0
+
+        self.count = 0
+
+        self.acc_type = acc_type
+
+
+
+    def update(self, val, n=1):
+
+        self.val = val
+
+        self.sum += val * n
+
+        self.count += n
+
+        self.avg = self.sum / self.count
+
+
+
+    def __get__(self):
+
+        return self.avg
+def train_model():
+
+    
+
+
+
+    ## Load new model
+
+    model = EncoderModel(PARAMETERS['model_name'])
+
+    
+
+    # Freezing weights except fc
+
+    for name, param in model.named_parameters():
+
+            if name not in ['fc.weight', 'fc.bias']:
+
+                param.requires_grad = False
+
+    
+
+    # init the fc layer
+
+    model.fc.weight.data.normal_(mean=0.0, std=0.01)
+
+    model.fc.bias.data.zero_()
+
+    
+
+    # load model
+
+    checkpoint = torch.load(PARAMETERS['model_load'])
+
+    
+
+
+
+    # rename moco pre-trained keys
+
+    state_dict = checkpoint['model_state_dict']
+
+    for k in list(state_dict.keys()):
+
+        # retain only encoder_q up to before the embedding layer
+
+        if k.startswith('module.query_enc') and not k.startswith('module.query_enc.fc'):
+
+            # remove prefix
+
+            state_dict[k[len("module.query_enc."):]] = state_dict[k]
+
+        # delete renamed or unused k
+
+        del state_dict[k]
+
+    
+
+
+
+    msg = model.load_state_dict(state_dict, strict=False)
+
+    
+
+    assert set(msg.missing_keys) == {"fc.weight", "fc.bias"}
+
+    
+
+    model = torch.nn.parallel.DistributedDataParallel(model)
+
+    
+
+    
+
+    # Wrapping to Xla XMP Wrapper
+
+    WRAPPED_MODEL = xmp.MpModelWrapper(model)
+
+
+
+#     if (PARAMETERS['load_from_saved']):
+
+#         model, PARAMETERS['start_epoch'], loss = loadModel(model, PARAMETERS['model_load'])
+
+#         PARAMETERS['start_epoch'] += 1
+
+#         PARAMETERS['load_from_saved'] = False
+
+#         print("Loaded model loss", loss)
+
+#         WRAPPED_MODEL = xmp.MpModelWrapper(model)
+
+
+
+    # Only instantiate model weights once in memory.
+
+    weighted_model = WRAPPED_MODEL.to(device)
+
+    
+
+    # define loss function (criterion) and optimizer
+
+    criterion = nn.CrossEntropyLoss().to(device)
+
+
+
+    # optimize only the linear classifier
+
+    parameters = list(filter(lambda p: p.requires_grad, weighted_model.parameters()))
+
+    assert len(parameters) == 2  # fc.weight, fc.bias
+
+    optimizer = torch.optim.SGD(parameters, lr=LR,momentum=0.9,weight_decay=PARAMETERS['weight_decay'])
+
+
+
+    def training_loop(data):
+
+        
+
+        epoch_loss = 0.0
+
+        running_loss = 0.0
+
+        tracker = xm.RateTracker()
+
+        top1_acc = EpochAccuracy('top1')
+
+        top5_acc = EpochAccuracy('top5')
+
+
+
+        for i, (images,labels) in enumerate(data):
+
+
+
+            optimizer.zero_grad()
+
+            output = weighted_model.forward(images)
+
+            
+
+            loss = criterion(output, labels)
+
+            loss.backward()
+
+            xm.optimizer_step(optimizer)
+
+
+
+            batch_acc1, batch_acc5 = accuracy(output,labels,topk=(1,5))
+
+            top1_acc.update(batch_acc1[0].item(),images.size(0))
+
+            top5_acc.update(batch_acc5[0].item(),images.size(0))
+
+            
+
+            epoch_loss += loss.item()
+
+            running_loss += loss.item()
+
+            
+
+            
+
+            
+
+            tracker.add(PARAMETERS['batch_size'])
+
+        return epoch_loss/len(data), running_loss, top1_acc.__get__()
+
+
+
+    def testing_loop(data):
+
+        total = 0
+
+        correct = 0
+
+        validation_loss = 0
+
+        top1_acc = EpochAccuracy('top1')
+
+        top5_acc = EpochAccuracy('top5')
+
+
+
+        images, labels, pred = None, None, None
+
+        with torch.no_grad():
+
+            for i, (images,labels) in enumerate(data):
+
+                output = weighted_model.forward(images)
+
+
+
+                loss_v = criterion(output,labels)
+
+                validation_loss += loss_v.item()
+
+
+
+                batch_acc1, batch_acc5 = accuracy(output,labels,topk=(1,5))
+
+
+
+                top1_acc.update(batch_acc1[0].item(),images[0].size(0))
+
+                top5_acc.update(batch_acc5[0].item(),images[0].size(0))
+
+
+
+            epoch_acc = (top1_acc.__get__(),top5_acc.__get__())
+
+        return epoch_acc, validation_loss/len(data)
+
+
+
+
+
+    acc = 0.0
+
+    data, pred, target = None, None, None
+
+    
+
+    if(PARAMETERS['train_mode']):
+
+        for epoch in range(PARAMETERS['start_epoch'], PARAMETERS['epochs'] + 1):
+
+            para_loader = pl.ParallelLoader(train_set, [device],fixed_batch_size=True)
+
+
+
+            #Train for single epoch
+
+            epoch_loss, running_loss, train_acc_epoch = training_loop(para_loader.per_device_loader(device))
+
+
+
+            
+
+
+
+            train_loss = epoch_loss
+
+            para_loader = pl.ParallelLoader(test_set, [device],fixed_batch_size=True)
+
+            acc, validation_loss = testing_loop(para_loader.per_device_loader(device))
+
+            if acc[0] > PARAMETERS['max_acc1'] and acc[1] > PARAMETERS['max_acc5']:
+
+                PARAMETERS['max_acc1'] = acc[0]
+
+                PARAMETERS['max_acc5'] = acc[1]
+
+                
+
+
+
+            xm.master_print("["+str(epoch)+" , "+str(train_loss)+" , "+str(train_acc_epoch)+", "+str(validation_loss)+","+str(acc[0])+","+str(acc[1])+","+str(PARAMETERS['max_acc1'])+","+str(PARAMETERS['max_acc5'])+"]")
+
+            xm.save({
+
+                      'epoch': epoch,
+
+                      'model_state_dict': model.state_dict(),
+
+                      'optimizer_state_dict': optimizer.state_dict(),
+
+                      'loss': (epoch_loss/len(train_set))
+
+                      }, PARAMETERS['model_saved'])
+
+#             xm.master_print("["+str(epoch)+" , "+str(train_loss)+" , "+str(train_acc_epoch)+"]")
+
+
+
+        
+
+    
+
+    para_loader = pl.ParallelLoader(test_set, [device],fixed_batch_size=True)
+
+    acc, validation_loss = testing_loop(para_loader.per_device_loader(device))
+
+    return acc, data, pred, target, model
+def start_training(rank, parameters):
+
+    global PARAMETERS
+
+    PARAMETERS = parameters
+
+    torch.set_default_tensor_type('torch.FloatTensor')
+
+    acc, data, pred, target, model = train_model()
+
+    print('Top1-Accuracy: ',str(acc[0]),'%', ' Top5-Accuracy: ',str(acc[1]),'%')
+
+
+
+
+
+PARAMETERS['load_from_saved'] = False
+
+PARAMETERS['train_mode'] = True
+
+xmp.spawn(start_training, args=(PARAMETERS, ), nprocs = world_size,
+
+          start_method='fork')
+PARAMETERS['load_from_saved'] = False
+
+PARAMETERS['train_mode'] = False
+
+xmp.spawn(start_training, args=(PARAMETERS, ), nprocs = world_size,
+
+          start_method='fork')

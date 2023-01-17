@@ -1,0 +1,411 @@
+import pandas as pd
+#load the data
+sample=pd.read_csv("../input/samplereviews.csv")
+#check the loaded data
+print(sample.shape)
+#look of the dataset
+sample.head()
+# Understand how customer ratings are distributed
+import seaborn as sns
+sns.countplot(sample.Score)
+#converting the Numerical reviws to categorical reviews on codition above 3 are
+#positive and below 3 are negative as reviews rating with 3 are not much useful
+#for analysis
+
+#function
+def partition(x):
+    if x < 3:
+        return 'negative'
+    return 'positive'
+
+#changing reviews with score less than 3 to be positive
+actualScore = sample['Score']
+positiveNegative = actualScore.map(partition) 
+sample['Score'] = positiveNegative
+sample.head()
+# no of positive and negative reviews
+sample["Score"].value_counts()
+#here we can say it is a unbalanced data set
+#dropping  the duplicates column if any using drop duplicates from pandas
+sorted_data=sample.sort_values('ProductId', axis=0, ascending=True, inplace=False, kind='quicksort', na_position='last')
+final=sorted_data.drop_duplicates(subset={"UserId","ProfileName","Time","Text"}, keep='first', inplace=False)
+final.shape
+# no duplicate columns found
+(final['Id'].size*1.0)/(sample['Id'].size*1.0)*100
+final=final[final.HelpfulnessNumerator<=final.HelpfulnessDenominator]
+# Help..Num is always less than Denom.. as Denom is people who upvote and donwvote
+#Before understanding text preprocessing lets see the number of entries left
+print(final.shape)
+
+#How many positive and negative reviews are present in our dataset?
+final['Score'].value_counts()
+
+# after removing duplicate rows we found, 8346 positive and 1457 negative
+# After Removing Duplicate rows
+import seaborn as sns
+sns.countplot(final.Score)
+# find sentences containing HTML tags
+import re
+i=0;
+for sent in final['Text'].values:
+    if (len(re.findall('<.*?>', sent))):
+        print(i)
+        print(sent)
+        break;
+    i += 1;
+import nltk
+nltk.download('stopwords')
+from nltk.corpus import stopwords
+sno = nltk.stem.SnowballStemmer('english') #initialising the snowball stemmer which is developed in recent years
+stop=set(stopwords.words('english'))
+
+
+
+def cleanhtml(sentence): #function to clean the word of any html-tags
+    cleanr = re.compile('<.*?>')
+    cleantext = re.sub(cleanr, ' ', sentence)
+    return cleantext
+def cleanpunc(sentence): #function to clean the word of any punctuation or special characters
+    cleaned = re.sub(r'[?|!|\'|"|#]',r'',sentence)
+    cleaned = re.sub(r'[.|,|)|(|\|/]',r' ',cleaned)
+    return  cleaned
+print(stop)
+print('************************************')
+print(sno.stem('tasty'))
+i=0
+str1=' '
+final_string=[]
+all_positive_words=[] # store words from +ve reviews here
+all_negative_words=[] # store words from -ve reviews here.
+s=''
+for sent in final['Text'].values:
+    filtered_sentence=[]
+    #print(sent);
+    sent=cleanhtml(sent) # remove HTMl tags
+    for w in sent.split():
+        for cleaned_words in cleanpunc(w).split():
+            if((cleaned_words.isalpha()) & (len(cleaned_words)>2)):    
+                if(cleaned_words.lower() not in stop):
+                    s=(sno.stem(cleaned_words.lower())).encode('utf8')
+                    filtered_sentence.append(s)
+                    if (final['Score'].values)[i] == 'positive': 
+                        all_positive_words.append(s) #list of all words used to describe positive reviews
+                    if(final['Score'].values)[i] == 'negative':
+                        all_negative_words.append(s) #list of all words used to describe negative reviews reviews
+                else:
+                    continue
+            else:
+                continue 
+    #print(filtered_sentence)
+    str1 = b" ".join(filtered_sentence) #final string of cleaned words
+    #print("***********************************************************************")
+    
+    final_string.append(str1)
+    i+=1
+final['CleanedText']=final_string #adding a column of CleanedText which displays the data after pre-processing of the review 
+final['CleanedText']=final['CleanedText'].str.decode("utf-8")
+final.shape # cleaned text column added
+final.head(3) #below the processed review can be seen in the CleanedText Column 
+# however, this is not required for clustering, just segregaring positive,negative and storing seperetly
+data_pos = final[final["Score"] == "positive"]
+data_neg = final[final["Score"] == "negative"]
+final = pd.concat([data_pos, data_neg])
+score =final["Score"]
+final.head()
+
+#Converting the time frame and sorting in increasing order for easyness
+final["Time"] = pd.to_datetime(final["Time"], unit = "s")
+final= final.sort_values(by = "Time")
+final.head()
+# Generating bag of words features.
+from sklearn.feature_extraction.text import CountVectorizer
+count_vect = CountVectorizer()
+bow = count_vect.fit_transform(final['CleanedText'].values)
+bow.shape
+bow
+# to understand what kind of words generated as columns by BOW
+terms = count_vect.get_feature_names()
+#first 10 columns generated by BOW
+terms[1:10]
+#using all processes jobs=-1 and k means++ for starting initilization advantage
+from sklearn.cluster import KMeans
+model = KMeans(n_clusters = 10,init='k-means++', n_jobs = -1,random_state=99)
+model.fit(bow)
+labels = model.labels_
+cluster_center=model.cluster_centers_
+cluster_center
+from sklearn import metrics
+silhouette_score = metrics.silhouette_score(bow, labels, metric='euclidean')
+# which tells us that clusters are far away from each other 
+silhouette_score
+# Giving Labels/assigning a cluster to each point/text 
+df = final
+df['Bow Clus Label'] = model.labels_ # the last column you can see the label numebers
+df.head(2)
+# How many points belong to each cluster -> using group by in pandas
+df.groupby(['Bow Clus Label'])['Text'].count()
+#Refrence credit - to find the top 10 features of cluster centriod
+#https://stackoverflow.com/questions/47452119/kmean-clustering-top-terms-in-cluster
+print("Top terms per cluster:")
+order_centroids = model.cluster_centers_.argsort()[:, ::-1]
+terms = count_vect.get_feature_names()
+for i in range(10):
+    print("Cluster %d:" % i, end='')
+    for ind in order_centroids[i, :10]:
+        print(' %s' % terms[ind], end='')
+        print()
+# visually how points or reviews are distributed across 10 clusters 
+import matplotlib.pyplot as plt
+plt.bar([x for x in range(10)], df.groupby(['Bow Clus Label'])['Text'].count(), alpha = 0.4)
+plt.title('KMeans cluster points')
+plt.xlabel("Cluster number")
+plt.ylabel("Number of points")
+plt.show()
+# Reading a review which belong to each group.
+for i in range(10):
+    print("A review of assigned to cluster ", i)
+    print("-" * 70)
+    print(df.iloc[df.groupby(['Bow Clus Label']).groups[i][0]]['Text'])
+    print('\n')
+    print("_" * 70)
+#considers sample of 3 random reviews for cluster 0
+
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[0][3]]['Text'])
+print("_" * 70)
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[0][15]]['Text'])
+print("_" * 70)
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[0][25]]['Text'])
+#consider sample of 3 random reviews for cluster 4
+
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[3][3]]['Text'])
+print("_" * 70)
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[3][15]]['Text'])
+print("_" * 70)
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[3][25]]['Text'])
+#consider sample of 3 random reviews for cluster 4
+
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[5][3]]['Text'])
+print("_" * 70)
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[5][15]]['Text'])
+print("_" * 70)
+print(df.iloc[df.groupby(['Bow Clus Label']).groups[5][25]]['Text'])
+#tfidf vector initililization
+from sklearn.feature_extraction.text import TfidfVectorizer
+tfidf_vect = TfidfVectorizer()
+tfidf = tfidf_vect.fit_transform(final['CleanedText'].values)
+tfidf.shape
+from sklearn.cluster import KMeans
+model_tf = KMeans(n_clusters = 10, n_jobs = -1,random_state=99)
+model_tf.fit(tfidf)
+labels_tf = model_tf.labels_
+cluster_center_tf=model_tf.cluster_centers_
+cluster_center_tf
+# to understand what kind of words generated as columns by BOW
+terms1 = tfidf_vect.get_feature_names()
+terms1[1:10]
+from sklearn import metrics
+silhouette_score_tf = metrics.silhouette_score(tfidf, labels_tf, metric='euclidean')
+silhouette_score_tf
+# Giving Labels/assigning a cluster to each point/text 
+df1 = df
+df1['Tfidf Clus Label'] = model_tf.labels_
+df1.head(5)
+# How many points belong to each cluster ->
+
+df1.groupby(['Tfidf Clus Label'])['Text'].count()
+#Refrence credit - to find the top 10 features of cluster centriod
+#https://stackoverflow.com/questions/47452119/kmean-clustering-top-terms-in-cluster
+print("Top terms per cluster:")
+order_centroids = model_tf.cluster_centers_.argsort()[:, ::-1]
+for i in range(10):
+    print("Cluster %d:" % i, end='')
+    for ind in order_centroids[i, :10]:
+        print(' %s' % terms1[ind], end='')
+        print()
+# visually how points or reviews are distributed across 10 clusters 
+
+plt.bar([x for x in range(10)], df1.groupby(['Tfidf Clus Label'])['Text'].count(), alpha = 0.4)
+plt.title('KMeans cluster points')
+plt.xlabel("Cluster number")
+plt.ylabel("Number of points")
+plt.show()
+# Reading a review which belong to each group.
+for i in range(10):
+    print("4 review of assigned to cluster ", i)
+    print("-" * 70)
+    print(df1.iloc[df1.groupby(['Tfidf Clus Label']).groups[i][5]]['Text'])
+    print('\n')
+    print(df1.iloc[df1.groupby(['Tfidf Clus Label']).groups[i][10]]['Text'])
+    print('\n')
+    print(df1.iloc[df1.groupby(['Tfidf Clus Label']).groups[i][20]]['Text'])
+    print('\n')
+    print("_" * 70)
+# Train your own Word2Vec model using your own text corpus
+i=0
+list_of_sent=[]
+for sent in final['CleanedText'].values:
+    list_of_sent.append(sent.split())
+print(final['CleanedText'].values[0])
+print("*****************************************************************")
+print(list_of_sent[0])
+
+# removing html tags and apostrophes if present.
+import re
+def cleanhtml(sentence): #function to clean the word of any html-tags
+    cleanr = re.compile('<.*?>')
+    cleantext = re.sub(cleanr, ' ', sentence)
+    return cleantext
+def cleanpunc(sentence): #function to clean the word of any punctuation or special characters
+    cleaned = re.sub(r'[?|!|\'|"|#]',r'',sentence)
+    cleaned = re.sub(r'[.|,|)|(|\|/]',r' ',cleaned)
+    return  cleaned
+i=0
+list_of_sent_train=[]
+for sent in final['CleanedText'].values:
+    filtered_sentence=[]
+    sent=cleanhtml(sent)
+    for w in sent.split():
+        for cleaned_words in cleanpunc(w).split():
+            if(cleaned_words.isalpha()):    
+                filtered_sentence.append(cleaned_words.lower())
+            else:
+                continue 
+    list_of_sent_train.append(filtered_sentence)
+import gensim
+# Training the wor2vec model using train dataset
+w2v_model=gensim.models.Word2Vec(list_of_sent_train,size=100, workers=4)
+import numpy as np
+sent_vectors = []; # the avg-w2v for each sentence/review is stored in this train
+for sent in list_of_sent_train: # for each review/sentence
+    sent_vec = np.zeros(100) # as word vectors are of zero length
+    cnt_words =0; # num of words with a valid vector in the sentence/review
+    for word in sent: # for each word in a review/sentence
+        try:
+            vec = w2v_model.wv[word]
+            sent_vec += vec
+            cnt_words += 1
+        except:
+            pass
+    sent_vec /= cnt_words
+    sent_vectors.append(sent_vec)
+sent_vectors = np.array(sent_vectors)
+sent_vectors = np.nan_to_num(sent_vectors)
+sent_vectors.shape
+
+# Number of clusters to check.
+num_clus = [x for x in range(3,11)]
+num_clus
+# Choosing the best cluster using Elbow Method.
+# source credit,few parts of min squred loss info is taken from different parts of the stakoverflow answers.
+# this is used to understand to find the optimal clusters in differen way rather than used in BOW, TFIDF
+squared_errors = []
+for cluster in num_clus:
+    kmeans = KMeans(n_clusters = cluster).fit(sent_vectors) # Train Cluster
+    squared_errors.append(kmeans.inertia_) # Appending the squared loss obtained in the list
+    
+optimal_clusters = np.argmin(squared_errors) + 2 # As argmin return the index of minimum loss. 
+plt.plot(num_clus, squared_errors)
+plt.title("Elbow Curve to find the no. of clusters.")
+plt.xlabel("Number of clusters.")
+plt.ylabel("Squared Loss.")
+xy = (optimal_clusters, min(squared_errors))
+plt.annotate('(%s, %s)' % xy, xy = xy, textcoords='data')
+plt.show()
+
+print ("The optimal number of clusters obtained is - ", optimal_clusters)
+print ("The loss for optimal cluster is - ", min(squared_errors))
+# Training the best model --
+from sklearn.cluster import KMeans
+model2 = KMeans(n_clusters = optimal_clusters)
+model2.fit(sent_vectors)
+word_cluster_pred=model2.predict(sent_vectors)
+word_cluster_pred_2=model2.labels_
+word_cluster_center=model2.cluster_centers_
+word_cluster_center[1:2]
+# Giving Labels/assigning a cluster to each point/text 
+dfa = df1
+dfa['AVG-W2V Clus Label'] = model2.labels_
+dfa.head(2)
+# How many points belong to each cluster ->
+dfa.groupby(['AVG-W2V Clus Label'])['Text'].count()
+# Reading a review which belong to each group.
+for i in range(optimal_clusters):
+    print("A review of assigned to cluster ", i)
+    print("-" * 70)
+    print(dfa.iloc[dfa.groupby(['AVG-W2V Clus Label']).groups[i][0]]['Text'])
+    print('\n')
+    print(dfa.iloc[dfa.groupby(['AVG-W2V Clus Label']).groups[i][1]]['Text'])
+    print('\n')
+    print("_" * 70)
+from sklearn.cluster import DBSCAN
+# Computing 200th Nearest neighbour distance
+minPts = 2 * 100
+# Lower bound function copied from -> https://gist.github.com/m00nlight/0f9306b4d4e61ba0195f
+def lower_bound(nums, target): # This function return the number in the array just greater than or equal to itself.
+    l, r = 0, len(nums) - 1
+    while l <= r: # Binary searching.
+        mid = int(l + (r - l) / 2)
+        if nums[mid] >= target:
+            r = mid - 1
+        else:
+            l = mid + 1
+    return l
+
+def compute200thnearestneighbour(x, data): # Returns the distance of 200th nearest neighbour.
+    dists = []
+    for val in data:
+        dist = np.sum((x - val) **2 ) # computing distances.
+        if(len(dists) == 200 and dists[199] > dist): # If distance is larger than current largest distance found.
+            l = int(lower_bound(dists, dist)) # Using the lower bound function to get the right position.
+            if l < 200 and l >= 0 and dists[l] > dist:
+                dists[l] = dist
+        else:
+            dists.append(dist)
+            dists.sort()
+    
+    return dists[199] # Dist 199 contains the distance of 200th nearest neighbour.
+# Computing the 200th nearest neighbour distance of some point the dataset:
+twohundrethneigh = []
+for val in sent_vectors[:1500]:
+    twohundrethneigh.append( compute200thnearestneighbour(val, sent_vectors[:1500]) )
+twohundrethneigh.sort()
+
+# Plotting for the Elbow Method :
+plt.figure(figsize=(14,4))
+plt.title("Elbow Method for Finding the right Eps hyperparameter")
+plt.plot([x for x in range(len(twohundrethneigh))], twohundrethneigh)
+plt.xlabel("Number of points")
+plt.ylabel("Distance of 200th Nearest Neighbour")
+plt.show()
+
+# Training DBSCAN :
+model = DBSCAN(eps = 5, min_samples = minPts, n_jobs=-1)
+model.fit(sent_vectors)
+
+dfdb = dfa
+dfdb['AVG-W2V Clus Label'] = model.labels_
+dfdb.head(2)
+dfdb.groupby(['AVG-W2V Clus Label'])['Id'].count()
+import scipy
+from scipy.cluster import hierarchy
+dendro=hierarchy.dendrogram(hierarchy.linkage(sent_vectors,method='ward'))
+plt.axhline(y=35)# cut at 30 to get 5 clusters
+from sklearn.cluster import AgglomerativeClustering
+
+cluster = AgglomerativeClustering(n_clusters=5, affinity='euclidean', linkage='ward')  #took n=5 from dendrogram curve 
+Agg=cluster.fit_predict(sent_vectors)
+# Giving Labels/assigning a cluster to each point/text 
+aggdfa = dfdb
+aggdfa['AVG-W2V Clus Label'] = cluster.labels_
+aggdfa.head(2)
+# How many points belong to each cluster ->
+aggdfa.groupby(['AVG-W2V Clus Label'])['Text'].count()
+# Reading a review which belong to each group.
+for i in range(5):
+    print("2 reviews of assigned to cluster ", i)
+    print("-" * 70)
+    print(aggdfa.iloc[aggdfa.groupby(['AVG-W2V Clus Label']).groups[i][0]]['Text'])
+    print('\n')
+    print(aggdfa.iloc[aggdfa.groupby(['AVG-W2V Clus Label']).groups[i][1]]['Text'])
+    print('\n')
+    print("_" * 70)

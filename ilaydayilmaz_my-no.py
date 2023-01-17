@@ -1,0 +1,1 @@
+print("GELECEĞİN YAPAY MÜHENDİSİ")

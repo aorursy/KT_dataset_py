@@ -1,0 +1,134 @@
+print("You've successfully run some Python code")
+print("Congratulations!")
+# You don't need to worry for now about what this code does or how it works. If you're ever curious about the 
+# code behind these exercises, it's available under an open source license here: https://github.com/Kaggle/learntools/
+# (But if you can understand that code, you'll probably find these lessons boring :)
+from learntools.core import binder; binder.bind(globals())
+from learntools.python.ex1 import *
+print("Setup complete! You're ready to start question 0.")
+# create a variable called color with an appropriate value on the line below.
+color = 'blue'
+q0.check()
+# create a variable called color with an appropriate value on the line below
+# (Remember, strings in Python must be enclosed in 'single' or "double" quotes)
+color = 'blue'
+q0.check()
+q0.hint()
+q0.solution()
+pi = 3.14159 # approximate
+diameter = 3
+
+# Create a variable called 'radius' equal to half the diameter
+radius = diameter / 2
+# Create a variable called 'area', using the formula for the area of a circle: pi times the radius squared
+area = pi * radius * radius
+q1.check()
+# Uncomment and run the lines below if you need help.
+#q1.hint()
+#q1.solution()
+########### Setup code - don't touch this part ######################
+# If you're curious, these are examples of lists. We'll talk about 
+# them in depth a few lessons from now. For now, just know that they're
+# yet another type of Python object, like int or float.
+a = [1, 2, 3]
+b = [3, 2, 1]
+q2.store_original_ids()
+######################################################################
+
+# Your code goes here. Swap the values to which a and b refer.
+# If you get stuck, you can always uncomment one or both of the lines in
+# the next cell for a hint, or to peek at the solution.
+a, b = b, a
+######################################################################
+q2.check()
+#q2.hint()
+#q2.solution()
+(5 - 3) // 2
+#q3.a.hint()
+#q3.a.solution()
+(8 - 3 * 2) - (1 + 1)
+#q3.b.hint()
+#q3.b.solution()
+# Variables representing the number of candies collected by alice, bob, and carol
+alice_candies = 121
+bob_candies = 77
+carol_candies = 109
+
+# Your code goes here! Replace the right-hand side of this assignment with an expression
+# involving alice_candies, bob_candies, and carol_candies
+to_smash = (alice_candies + bob_candies + carol_candies) % 3 #-1
+
+q4.check()
+#q4.hint()
+#q4.solution()
+7------3
+ninety_nine_dashes = 4
+q5.check()
+#q5.hint()
+#q5.solution()
+import random
+from matplotlib import pyplot as plt
+from learntools.python.quickdraw import random_category, sample_images_of_category, draw_images_on_subplots
+
+## Step 1: Sample some sketches
+# How many sketches to view - a random number from 2 to 20
+n = random.randint(2, 20)
+# Choose a random quickdraw category. (Check out https://quickdraw.withgoogle.com/data for an overview of categories)
+category = random_category()
+imgs = sample_images_of_category(n, category)
+
+imgHeight = 2
+imgWidth = 2
+
+maxTotalWidth = 16
+maxCols = maxTotalWidth / imgWidth #8
+
+possibleCols = [2,3,4,5,6,7,8]
+possibleRows = [1,2,3,4,5,6,7,8]
+calculatedCols = []
+calculatedRows = []
+emptyFields = []
+
+print("Number of images: ", n)
+
+for rows in possibleRows:    
+    for cols in possibleCols:
+        numEmptyFields = (rows * cols) - n
+        if numEmptyFields < 0:
+            continue
+        print("cols: ", cols)
+        print("rows: ", rows)
+        print("numEmptyFields: ", numEmptyFields)
+        calculatedCols.append(cols)
+        calculatedRows.append(rows)
+        emptyFields.append( numEmptyFields )   
+
+print("Lists:")
+print("Number of empty fields:\t", emptyFields)
+print("Cols\t:", calculatedCols)
+print("Rows\t:", calculatedRows)
+
+minEmptyFields = min(emptyFields)
+print("Minimum of empty fields: ", minEmptyFields)
+positionMinimum = emptyFields.index(minEmptyFields)
+print("Position of minimum: ", positionMinimum)
+minCols = calculatedCols[positionMinimum]
+minRows = calculatedRows[positionMinimum]
+
+## Step 2: Choose the grid properties
+######## Your changes should go here ###############
+numCols = minCols
+numRows = minRows
+# The height and width of the whole grid, measured in inches.
+totalHeight = imgHeight * numRows
+totalWidth = imgWidth * numCols
+
+## Step 3: Create the grid
+grid = plt.subplots(numRows, numCols, figsize=(totalWidth, totalHeight))
+
+## Step 4: Draw the sketches in the grid
+draw_images_on_subplots(imgs, grid)
+q6.hint()
+q6.solution()
+#q7.hint()
+#q7.solution()

@@ -1,0 +1,27 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra-
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+import os
+print(os.listdir("../input")) 
+
+# Any results you write to the current directory are saved as output.
+iris_data = pd.read_csv("../input/Iris.csv")
+iris_data.head()
+iris_data['Species'].nunique()
+iris_data.shape
+iris_data.count()
+iris_data['Species'].value_counts()
+iris_data['Species'].value_counts().plot.bar()
+iris_data.describe()
+pd.plotting.parallel_coordinates(iris_data, "Species")
+pd.plotting.parallel_coordinates(iris_data.drop("Id", axis=1), "Species")
+import seaborn as sns
+sns.pairplot(iris_data.drop("Id",axis=1), hue="Species")
+pd.plotting.andrews_curves(iris_data.drop("Id", axis=1), "Species")

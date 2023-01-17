@@ -1,0 +1,121 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+import matplotlib.pyplot as plt
+data = pd.read_csv('../input/spotify-dataset-19212020-160k-tracks/data.csv')
+data.head()
+
+##Might want to use regular expressions to decode patterns of text
+
+##filt = data['artists'] = "#####"
+###artists = data[filt]
+data_artist = pd.read_csv('../input/spotify-dataset-19212020-160k-tracks/data_by_artist.csv')
+data_artist.head()
+data_gen = pd.read_csv('../input/spotify-dataset-19212020-160k-tracks/data_by_genres.csv')
+data_gen.head(40)
+data_year = pd.read_csv('../input/spotify-dataset-19212020-160k-tracks/data_by_year.csv')
+data_year.head(100)
+data_w_geners = pd.read_csv('../input/spotify-dataset-19212020-160k-tracks/data_w_genres.csv')
+data_w_geners.head()
+data.info()
+data.isnull().sum()
+data.hist(figsize=(20, 20))
+plt.show()
+data_artist.hist(figsize=(20, 20))
+plt.show()
+data_gen.hist(figsize=(20, 20))
+plt.show()
+data_year.hist(figsize=(20, 20))
+plt.show()
+data_w_geners.hist(figsize=(20, 20))
+plt.show()
+import seaborn as sns
+plt.figure(figsize=(16, 8))
+sns.set(style="whitegrid")
+corr = data.corr()
+sns.heatmap(corr,annot=True, cmap="YlGnBu")
+plt.figure(figsize=(16, 8))
+sns.set(style="whitegrid")
+corr = data_artist.corr()
+sns.heatmap(corr,annot=True)
+plt.figure(figsize=(16, 8))
+sns.set(style="whitegrid")
+corr = data_year.corr()
+sns.heatmap(corr,annot=True)
+plt.figure(figsize=(16, 8))
+sns.set(style="whitegrid")
+corr = data_w_geners.corr()
+sns.heatmap(corr,annot=True)
+plt.figure(figsize=(16, 4))
+sns.distplot(data["liveness"])
+plt.figure(figsize=(16, 4))
+sns.distplot(data_gen["liveness"])
+plt.figure(figsize=(16, 4))
+sns.distplot(data_year["liveness"])
+plt.figure(figsize=(16, 4))
+sns.distplot(data_w_geners["liveness"])
+plt.figure(figsize=(16, 8))
+ax = sns.jointplot(x=data['loudness'],y=data["duration_ms"],data=data)
+plt.figure(figsize=(16, 8))
+ax = sns.jointplot(x=data_gen['loudness'],y=data_gen["duration_ms"],data=data_gen)
+plt.figure(figsize=(16, 8))
+ax = sns.jointplot(x=data_year['loudness'],y=data_year["duration_ms"],data=data_year)
+plt.figure(figsize=(16, 4))
+sns.set(style="whitegrid")
+x = data.groupby("name")["popularity"].mean().sort_values(ascending=False).head(20)
+axis = sns.barplot(x.index, x)
+axis.set_title('Top Tracks with Popularity')
+axis.set_ylabel('Popularity')
+axis.set_xlabel('Tracks')
+plt.xticks(rotation = 90)
+plt.figure(figsize=(16, 4))
+sns.set(style="whitegrid")
+x = data.groupby("artists")["popularity"].sum().sort_values(ascending=False).head(20)
+ax = sns.barplot(x.index, x)
+ax.set_title('Top Artists with Popularity')
+ax.set_ylabel('Popularity')
+ax.set_xlabel('Artists')
+plt.xticks(rotation = 90)
+plt.figure(figsize=(16, 4))
+sns.set(style="whitegrid")
+x = data_artist.groupby("artists")["popularity"].sum().sort_values(ascending=False).head(20)
+ax = sns.barplot(x.index, x)
+ax.set_title('Top Artists with Popularity')
+ax.set_ylabel('Popularity')
+ax.set_xlabel('Artists')
+plt.xticks(rotation = 90)
+plt.figure(figsize=(16, 10))
+sns.set(style="whitegrid")
+x = data.groupby("year")["id"].count()
+axis = sns.lineplot(x.index,x)
+ax.set_title('Count of Tracks added')
+ax.set_ylabel('Count')
+ax.set_xlabel('Year')
+plt.figure(figsize=(16, 10))
+sns.set(style="whitegrid")
+columns = ["acousticness","danceability","energy","speechiness","liveness","valence"]
+for col in columns:
+    x = data.groupby("year")[col].mean()
+    ax= sns.lineplot(x=x.index,y=x,label=col)
+ax.set_title('Audio characteristics over year')
+ax.set_ylabel('Measure')
+ax.set_xlabel('Year')
+plt.figure(figsize=(16, 8))
+sns.set(style="whitegrid")
+columns = ["loudness"]
+for col in columns:
+    x = data.groupby("year")[col].mean()
+    ax= sns.lineplot(x=x.index,y=x,label=col)
+ax.set_title('tempo')
+ax.set_ylabel('Count')
+ax.set_xlabel('Year')
+filt = data['artists'] == "['Duncan Sheik']"
+data[filt]
+filt_2 = data_gen['genres'] == 'pop'
+data_gen[filt_2]

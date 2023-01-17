@@ -1,0 +1,247 @@
+import os
+import sys
+import random
+import warnings
+
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+from itertools import chain
+from skimage.io import imread, imshow, imread_collection, concatenate_images
+from skimage.transform import resize
+from skimage.measure import label, regionprops
+from PIL import Image, ImageDraw
+from ast import literal_eval
+from tqdm.notebook import tqdm
+
+import tensorflow as tf
+
+from keras.models import Model, load_model
+from keras.layers import Input
+from keras.layers.core import Dropout, Lambda
+from keras.layers.convolutional import Conv2D, Conv2DTranspose
+from keras.layers.pooling import MaxPooling2D
+from keras.layers.merge import concatenate
+from keras.callbacks import EarlyStopping
+from keras import backend as K
+# Set some parameters
+IMG_WIDTH = 512
+IMG_HEIGHT = 512
+
+TRAIN_PATH = '/kaggle/input/global-wheat-detection/train/'
+TEST_PATH = '/kaggle/input/global-wheat-detection/test/'
+SC_FACTOR = int(1024 / IMG_WIDTH)
+
+warnings.filterwarnings('ignore')
+seed = 42
+random.seed = seed
+np.random.seed = seed
+PATH = "../input/global-wheat-detection/"
+train_folder = os.path.join(PATH, "train")
+test_folder = os.path.join(PATH, "test")
+
+train_csv_path = os.path.join(PATH, "train.csv")
+df = pd.read_csv(train_csv_path)
+sample_sub = pd.read_csv(PATH + "sample_submission.csv")
+
+df.head()
+# Get train and test IDs and paths
+train_ids = os.listdir(TRAIN_PATH)
+test_ids = os.listdir(TEST_PATH)
+def make_polygon(coords):
+    xm, ym, w, h = coords
+    xm, ym, w, h = xm / SC_FACTOR, ym / SC_FACTOR, w / SC_FACTOR, h / SC_FACTOR   # scale values if image was downsized
+    return [(xm, ym), (xm, ym + h), (xm + w, ym + h), (xm + w, ym)]
+
+masks = dict() # dictionnary containing all masks
+
+for img_id, gp in tqdm(df.groupby("image_id")):
+    gp['polygons'] = gp['bbox'].apply(eval).apply(lambda x: make_polygon(x))
+
+    img = Image.new('L', (IMG_WIDTH, IMG_HEIGHT), 0)
+    for pol in gp['polygons'].values:
+        ImageDraw.Draw(img).polygon(pol, outline=1, fill=1)
+
+    mask = np.array(img, dtype=np.uint8)
+    masks[img_id] = mask
+# Get and resize train images and masks
+X_train = np.zeros((len(train_ids), IMG_HEIGHT, IMG_WIDTH, 3), dtype=np.uint8)
+Y_train = np.zeros((len(train_ids), IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
+print('Getting and resizing train images and masks... ')
+sys.stdout.flush()
+
+for n, id_ in tqdm(enumerate(train_ids[:]), total=len(train_ids)):
+    path = TRAIN_PATH + id_
+    img = imread(path)
+    img = resize(img, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
+    X_train[n] = img
+    mask = np.zeros((IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
+    
+    id_clean = id_.split('.')[0]
+    if id_clean in masks.keys():
+        Y_train[n] = masks[id_clean][:, :, np.newaxis]
+
+# Get and resize test images
+X_test = np.zeros((len(test_ids), IMG_HEIGHT, IMG_WIDTH, 3), dtype=np.uint8)
+sizes_test = list()
+print('Getting and resizing test images...')
+sys.stdout.flush()
+
+for n, id_ in tqdm(enumerate(test_ids), total=len(test_ids)):
+    path = TEST_PATH + id_
+    img = imread(path)
+    sizes_test.append([img.shape[0], img.shape[1]])
+    img = resize(img, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
+    X_test[n] = img
+
+print('Done!')
+X_train.shape, Y_train.shape
+#Credits to : https://www.kaggle.com/c/tgs-salt-identification-challenge/discussion/63044
+
+def castF(x):
+    return K.cast(x, K.floatx())
+
+def castB(x):
+    return K.cast(x, bool)
+
+def iou_loss_core(true,pred):  #this can be used as a loss if you make it negative
+    intersection = true * pred
+    notTrue = 1 - true
+    union = true + (notTrue * pred)
+
+    return (K.sum(intersection, axis=-1) + K.epsilon()) / (K.sum(union, axis=-1) + K.epsilon())
+
+def competitionMetric2(true, pred):
+
+    tresholds = [0.5 + (i * 0.05)  for i in range(5)]
+
+    #flattened images (batch, pixels)
+    true = K.batch_flatten(true)
+    pred = K.batch_flatten(pred)
+    pred = castF(K.greater(pred, 0.5))
+
+    #total white pixels - (batch,)
+    trueSum = K.sum(true, axis=-1)
+    predSum = K.sum(pred, axis=-1)
+
+    #has mask or not per image - (batch,)
+    true1 = castF(K.greater(trueSum, 1))    
+    pred1 = castF(K.greater(predSum, 1))
+
+    #to get images that have mask in both true and pred
+    truePositiveMask = castB(true1 * pred1)
+
+    #separating only the possible true positives to check iou
+    testTrue = tf.boolean_mask(true, truePositiveMask)
+    testPred = tf.boolean_mask(pred, truePositiveMask)
+
+    #getting iou and threshold comparisons
+    iou = iou_loss_core(testTrue,testPred) 
+    truePositives = [castF(K.greater(iou, tres)) for tres in tresholds]
+
+    #mean of thressholds for true positives and total sum
+    truePositives = K.mean(K.stack(truePositives, axis=-1), axis=-1)
+    truePositives = K.sum(truePositives)
+
+    #to get images that don't have mask in both true and pred
+    trueNegatives = (1-true1) * (1 - pred1) # = 1 -true1 - pred1 + true1*pred1
+    trueNegatives = K.sum(trueNegatives) 
+
+    return (truePositives + trueNegatives) / castF(K.shape(true)[0])
+# Build U-Net model
+inputs = Input((IMG_HEIGHT, IMG_WIDTH, 3))
+s = Lambda(lambda x: x / 255) (inputs)  # rescale inputs
+
+c1 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (s)
+c1 = Dropout(0.1) (c1)
+c1 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c1)
+p1 = MaxPooling2D((2, 2)) (c1)
+
+c2 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p1)
+c2 = Dropout(0.1) (c2)
+c2 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c2)
+p2 = MaxPooling2D((2, 2)) (c2)
+
+c3 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p2)
+c3 = Dropout(0.2) (c3)
+c3 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c3)
+p3 = MaxPooling2D((2, 2)) (c3)
+
+c4 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p3)
+c4 = Dropout(0.2) (c4)
+c4 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c4)
+p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
+
+c5 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (p4)
+c5 = Dropout(0.3) (c5)
+c5 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c5)
+
+u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c5)
+u6 = concatenate([u6, c4])
+c6 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u6)
+c6 = Dropout(0.2) (c6)
+c6 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c6)
+
+u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c6)
+u7 = concatenate([u7, c3])
+c7 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u7)
+c7 = Dropout(0.2) (c7)
+c7 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c7)
+
+u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c7)
+u8 = concatenate([u8, c2])
+c8 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u8)
+c8 = Dropout(0.1) (c8)
+c8 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c8)
+
+u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same') (c8)
+u9 = concatenate([u9, c1], axis=3)
+c9 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (u9)
+c9 = Dropout(0.1) (c9)
+c9 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same') (c9)
+
+outputs = Conv2D(1, (1, 1), activation='sigmoid') (c9)
+
+model = Model(inputs=[inputs], outputs=[outputs])
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[competitionMetric2])
+model.summary()
+# Fit model
+earlystop = EarlyStopping(patience=10, verbose=1, restore_best_weights=True)
+
+model.fit(X_train, 
+         Y_train,
+         validation_split=0.1,
+         batch_size=32, 
+         epochs=1, 
+         callbacks=[earlystop],
+        )
+THRESH = 0.65
+
+preds = model.predict(X_test)[:, :, :, 0]
+masked_preds = preds > THRESH
+def get_params_from_bbox(coords, scaling_factor=1):
+    xmin, ymin = coords[1] * scaling_factor, coords[0] * scaling_factor
+    w = (coords[3] - coords[1]) * scaling_factor
+    h = (coords[2] - coords[0]) * scaling_factor
+    
+    return xmin, ymin, w, h
+# Allows to extract bounding boxes from binary masks
+bboxes = list()
+
+for j in range(masked_preds.shape[0]):
+    label_j = label(masked_preds[j, :, :]) 
+    props = regionprops(label_j)   # that's were the job is done
+    bboxes.append(props)
+# Here we format the bboxes into the required format
+output = dict()
+
+for i in range(masked_preds.shape[0]):
+    bboxes_processed = [get_params_from_bbox(bb.bbox, scaling_factor=SC_FACTOR) for bb in bboxes[i]]
+    formated_boxes = ['1.0 ' + ' '.join(map(str, bb_m)) for bb_m in bboxes_processed]
+    
+    output[sample_sub["image_id"][i]] = " ".join(formated_boxes)
+sample_sub["PredictionString"] = output.values()
+sample_sub
+sample_sub.to_csv('submission.csv', index=False)

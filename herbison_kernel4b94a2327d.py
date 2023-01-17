@@ -1,0 +1,1 @@
+!dd if=/dev/zero of=output.file bs=1024 count=1024

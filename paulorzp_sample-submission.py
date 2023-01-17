@@ -1,0 +1,1 @@
+__import__('pandas').read_csv('../input/rsna-str-pulmonary-embolism-detection/sample_submission.csv', converters={'label': lambda t: 0.2}).to_csv('submission.csv',index=0)

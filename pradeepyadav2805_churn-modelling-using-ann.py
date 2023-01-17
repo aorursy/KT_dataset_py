@@ -1,0 +1,73 @@
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+import os
+print(os.listdir("../input"))
+# Any results you write to the current directory are saved as output.
+#import the libraries 
+import keras
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+dataset =pd.read_csv('../input/Churn_Modelling.csv')
+dataset.head()
+dataset.shape
+X = dataset.iloc[:,3:13].values
+X
+
+y= dataset.iloc[:,13].values
+y
+#encoding catagorical data
+#here male/female,france/spain/germany are catagorical data
+from sklearn.preprocessing import OneHotEncoder,LabelEncoder
+labelencoder_X1 = LabelEncoder() #creating object
+labelencoder_X2 = LabelEncoder() #creating object
+X[:,1] = labelencoder_X1.fit_transform(X[:,1]) #for countries
+X[:,2] = labelencoder_X1.fit_transform(X[:,2]) #for gender
+#Now there is confusion in country column
+#about the priorities whether 1>2>3 since each countries is assigned values from 0-2
+# to solve this we eill use OneHotEncoder
+onehotencoder_X = OneHotEncoder(categorical_features=[1])
+X = onehotencoder_X.fit_transform(X).toarray()
+X = X[:, 1:]
+# Splitting the dataset into the Training set and Test set
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+
+#feature scaling
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+#Now let's design the ANN!
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+#initializing ANN!
+classifier = Sequential()
+# Adding the input layer and the first hidden layer
+classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu', input_dim = 11))
+# Adding the second hidden layer
+classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu'))
+
+# Adding the output layer
+classifier.add(Dense(units = 1, kernel_initializer = 'uniform', activation = 'sigmoid'))
+
+# Compiling the ANN
+classifier.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+
+# Fitting the ANN to the Training set
+classifier.fit(X_train, y_train, batch_size = 10, epochs = 100)
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+y_pred = (y_pred > 0.5)
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
+cm
+# (1514+205)/2000
+y_pred

@@ -1,0 +1,377 @@
+import numpy as np
+print('numpy version\t:',np.__version__)
+import pandas as pd
+print('pandas version\t:',pd.__version__)
+import matplotlib.pyplot as plt
+%matplotlib inline
+from scipy import stats
+
+# Regular expressions
+import re
+
+# seaborn : advanced visualization
+import seaborn as sns
+print('seaborn version\t:',sns.__version__)
+
+pd.options.mode.chained_assignment = None #set it to None to remove SettingWithCopyWarning
+pd.options.display.float_format = '{:.2f}'.format #set it to convert scientific noations such as 4.225108e+11 to 422510842796.00
+#pd.set_option('display.max_columns', 100) # to display all the columns
+
+np.set_printoptions(suppress=True,formatter={'float_kind':'{:f}'.format})
+
+import os
+
+import warnings
+warnings.filterwarnings('ignore') # if there are any warning due to version mismatch, it will be ignored
+print(os.listdir("../input/lending-club"))
+loan = pd.read_csv('../input/lending-club/accepted_2007_to_2018q4.csv/accepted_2007_to_2018Q4.csv',dtype='object')
+print(loan.shape)
+loan.head(2)
+NA_col = loan.isnull().sum()
+NA_col = NA_col[NA_col.values >(0.3*len(loan))]
+plt.figure(figsize=(20,4))
+NA_col.plot(kind='bar')
+plt.title('List of Columns & NA counts where NA values are more than 30%')
+plt.show()
+def removeNulls(dataframe, axis =1, percent=0.3):
+    '''
+    * removeNull function will remove the rows and columns based on parameters provided.
+    * dataframe : Name of the dataframe  
+    * axis      : axis = 0 defines drop rows, axis =1(default) defines drop columns    
+    * percent   : percent of data where column/rows values are null,default is 0.3(30%)
+              
+    '''
+    df = dataframe.copy()
+    ishape = df.shape
+    if axis == 0:
+        rownames = df.transpose().isnull().sum()
+        rownames = list(rownames[rownames.values > percent*len(df)].index)
+        df.drop(df.index[rownames],inplace=True) 
+        print("\nNumber of Rows dropped\t: ",len(rownames))
+    else:
+        colnames = (df.isnull().sum()/len(df))
+        colnames = list(colnames[colnames.values>=percent].index)
+        df.drop(labels = colnames,axis =1,inplace=True)        
+        print("Number of Columns dropped\t: ",len(colnames))
+        
+    print("\nOld dataset rows,columns",ishape,"\nNew dataset rows,columns",df.shape)
+
+    return df
+loan = removeNulls(loan, axis =1,percent = 0.3)
+loan = removeNulls(loan, axis =0,percent = 0.3)
+unique = loan.nunique()
+unique = unique[unique.values == 1]
+print(unique.index)
+loan.drop(labels = list(unique.index), axis =1, inplace=True)
+print("Now we are left with",loan.shape ,"rows & columns.")
+print(loan.emp_length.unique())
+loan.emp_length.fillna('Self-Employed',inplace=True)
+print(loan.emp_length.unique())
+print(loan.term.unique())
+loan.term = loan.term.str.extract('(\d+)').astype(float)
+loan.term.fillna(0,inplace=True)
+print(loan.term.unique())
+if 'id'in loan.columns:
+    del loan['id']
+    print("ID deleted")
+if 'member_id'in loan.columns:
+    del loan['member_id']
+    print("memeber ID deleted")
+if 'url' in loan.columns:
+    del loan['url']
+    print("URL deleted")
+if 'zip_code' in loan.columns:
+    del loan['zip_code']
+    print("Zip Code deleted")
+print("Now we are left with",loan.shape ,"rows & columns.")
+numeric_columns = ['loan_amnt','funded_amnt','funded_amnt_inv','installment','int_rate','annual_inc','dti','open_acc','mort_acc','total_acc','delinq_2yrs','inq_last_6mths','pub_rec','fico_range_low','fico_range_low']
+
+loan[numeric_columns] = loan[numeric_columns].apply(pd.to_numeric)
+loan.tail(3)
+(loan.purpose.value_counts()*100)/len(loan)
+del_loan_purpose = (loan.purpose.value_counts()*100)/len(loan)
+del_loan_purpose = del_loan_purpose[(del_loan_purpose < 0.75) | (del_loan_purpose.index == 'other')]
+
+loan.drop(labels = loan[loan.purpose.isin(del_loan_purpose.index)].index, inplace=True)
+print("Now we are left with",loan.shape ,"rows & columns.")
+
+print(loan.purpose.unique())
+(loan.loan_status.value_counts()*100)/len(loan)
+del_loan_status = (loan.loan_status.value_counts()*100)/len(loan)
+del_loan_status = del_loan_status[(del_loan_status < 1.5)]
+
+loan.drop(labels = loan[loan.loan_status.isin(del_loan_status.index)].index, inplace=True)
+print("Now we are left with",loan.shape ,"rows & columns.")
+
+print(loan.loan_status.unique())
+loan['loan_income_ratio'] = loan['loan_amnt']/loan['annual_inc']
+loan['issue_month'],loan['issue_year'] = loan['issue_d'].str.split('-', 1).str
+loan[['issue_d','issue_month','issue_year']].head()
+months_order = ["Jan", "Feb", "Mar", "Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+loan['issue_month'] = pd.Categorical(loan['issue_month'],categories=months_order, ordered=True)
+bins = [0, 5000, 10000, 15000, 20000, 25000,40000]
+slot = ['0-5000', '5000-10000', '10000-15000', '15000-20000', '20000-25000','25000 and above']
+loan['loan_amnt_range'] = pd.cut(loan['loan_amnt'], bins, labels=slot)
+bins = [0, 25000, 50000, 75000, 100000,1000000]
+slot = ['0-25000', '25000-50000', '50000-75000', '75000-100000', '100000 and above']
+loan['annual_inc_range'] = pd.cut(loan['annual_inc'], bins, labels=slot)
+bins = [0, 7.5, 10, 12.5, 15,20]
+slot = ['0-7.5', '7.5-10', '10-12.5', '12.5-15', '15 and above']
+loan['int_rate_range'] = pd.cut(loan['int_rate'], bins, labels=slot)
+def univariate(df,col,vartype,hue =None):
+    
+    '''
+    Univariate function will plot the graphs based on the parameters.
+    df      : dataframe name
+    col     : Column name
+    vartype : variable type : continuos or categorical
+                Continuos(0)   : Distribution, Violin & Boxplot will be plotted.
+                Categorical(1) : Countplot will be plotted.
+    hue     : It's only applicable for categorical analysis.
+    
+    '''
+    sns.set(style="darkgrid")
+    
+    if vartype == 0:
+        fig, ax=plt.subplots(nrows =1,ncols=3,figsize=(20,8))
+        ax[0].set_title("Distribution Plot")
+        sns.distplot(df[col],ax=ax[0])
+        ax[1].set_title("Violin Plot")
+        sns.violinplot(data =df, x=col,ax=ax[1], inner="quartile")
+        ax[2].set_title("Box Plot")
+        sns.boxplot(data =df, x=col,ax=ax[2],orient='v')
+    
+    if vartype == 1:
+        temp = pd.Series(data = hue)
+        fig, ax = plt.subplots()
+        width = len(df[col].unique()) + 6 + 4*len(temp.unique())
+        fig.set_size_inches(width , 7)
+        ax = sns.countplot(data = df, x= col, order=df[col].value_counts().index,hue = hue) 
+        if len(temp.unique()) > 0:
+            for p in ax.patches:
+                ax.annotate('{:1.1f}%'.format((p.get_height()*100)/float(len(loan))), (p.get_x()+0.05, p.get_height()+20))  
+        else:
+            for p in ax.patches:
+                ax.annotate(p.get_height(), (p.get_x()+0.32, p.get_height()+20)) 
+        del temp
+    else:
+        exit
+        
+    plt.show()
+loan["loan_amnt"].describe()
+univariate(df=loan,col='loan_amnt',vartype=0)
+univariate(df=loan,col='int_rate',vartype=0)
+loan["annual_inc"].describe()
+q = loan["annual_inc"].quantile(0.995)
+loan = loan[loan["annual_inc"] < q]
+loan["annual_inc"].describe()
+univariate(df=loan,col='annual_inc',vartype=0)
+univariate(df=loan,col='loan_status',vartype=1)
+univariate(df=loan,col='purpose',vartype=1,hue='loan_status')
+loan.home_ownership.unique()
+# Remove rows where home_ownership'=='OTHER', 'NONE', 'ANY'
+rem = ['OTHER', 'NONE', 'ANY']
+loan.drop(loan[loan['home_ownership'].isin(rem)].index,inplace=True)
+loan.home_ownership.unique()
+univariate(df=loan,col='home_ownership',vartype=1,hue='loan_status')
+year_wise =loan.groupby(by= [loan.issue_year])[['loan_status']].count()
+year_wise.rename(columns={"loan_status": "count"},inplace=True)
+ax =year_wise.plot(figsize=(20,8))
+year_wise.plot(kind='bar',figsize=(20,8),ax = ax)
+plt.show()
+univariate(df=loan,col='term',vartype=1,hue='loan_status')
+loan.head(3)
+plt.figure(figsize=(16,12))
+sns.boxplot(data =loan, x='purpose', y='loan_amnt', hue ='loan_status')
+plt.title('Purpose of Loan vs Loan Amount')
+plt.show()
+loan_correlation = loan.corr()
+loan_correlation
+f, ax = plt.subplots(figsize=(14, 9))
+sns.heatmap(loan_correlation, 
+            xticklabels=loan_correlation.columns.values,
+            yticklabels=loan_correlation.columns.values,annot= True)
+plt.show()
+loanstatus=loan.pivot_table(index=['loan_status','purpose','emp_length'],values='loan_amnt',aggfunc=('count')).reset_index()
+loanstatus=loan.loc[loan['loan_status']=='Charged Off']
+ax = plt.figure(figsize=(30, 18))
+ax = sns.boxplot(x='emp_length',y='loan_amnt',hue='purpose',data=loanstatus)
+ax.set_title('Employment Length vs Loan Amount for different pupose of Loan',fontsize=22,weight="bold")
+ax.set_xlabel('Employment Length',fontsize=16)
+ax.set_ylabel('Loan Amount',color = 'b',fontsize=16)
+plt.show()
+def crosstab(df,col):
+    '''
+    df : Dataframe
+    col: Column Name
+    '''
+    crosstab = pd.crosstab(df[col], df['loan_status'],margins=True)
+    crosstab['Probability_Charged Off'] = round((crosstab['Charged Off']/crosstab['All']),3)
+    crosstab = crosstab[0:-1]
+    max1 = max(crosstab['Probability_Charged Off'])
+    maxx = crosstab.loc[crosstab['Probability_Charged Off']==max1]
+    
+    return crosstab,maxx
+# Probability of charge off
+def bivariate_prob(df,col,stacked= True):
+    '''
+    df      : Dataframe
+    col     : Column Name
+    stacked : True(default) for Stacked Bar
+    '''
+    # get dataframe from crosstab function
+    plotCrosstab,maxx = crosstab(df,col)
+    
+    linePlot = plotCrosstab[['Probability_Charged Off']]      
+    barPlot =  plotCrosstab.iloc[:,0:2]
+    ax = linePlot.plot(figsize=(20,8), marker='o',color = 'r')
+    ax2 = barPlot.plot(kind='bar',ax = ax,rot=1,secondary_y=True,stacked=stacked)
+    ax.set_title(df[col].name.title()+' vs Probability Charge Off',fontsize=20,weight="bold")
+    ax.set_xlabel(df[col].name.title(),fontsize=14)
+    ax.set_ylabel('Probability of Charged off',color = 'b',fontsize=14)
+    ax2.set_ylabel('Number of Applicants',color = 'g',fontsize=14)
+    plt.show()
+filter_states = loan.addr_state.value_counts()
+filter_states = filter_states[(filter_states < 10)]
+
+loan_filter_states = loan.drop(labels = loan[loan.addr_state.isin(filter_states.index)].index)
+states,maxx = crosstab(loan_filter_states,'addr_state')
+display(states.tail(20))
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df=loan_filter_states,col ='addr_state')
+purpose,maxx = crosstab(loan,'purpose')
+display(purpose)
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df=loan,col='purpose',stacked=False)
+grade,maxx = crosstab(loan,'grade')
+display(grade)
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df =loan,col ='grade',stacked=False)
+bivariate_prob(df =loan,col ='sub_grade')
+annual_inc_range,maxx = crosstab(loan,'annual_inc_range')
+display(annual_inc_range)
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df=loan,col ='annual_inc_range')
+int_rate_range,maxx = crosstab(loan,'int_rate_range')
+display(int_rate_range)
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df =loan,col ='int_rate_range')
+emp_length,maxx = crosstab(loan,'emp_length')
+display(emp_length)
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df=loan,col='emp_length')
+len(loan.columns)
+loan_status_grouped = loan.groupby('loan_status').size().sort_values(ascending=False)/len(loan) * 100
+loan_status_grouped
+loan = loan[loan.loan_status != 'Current']
+#loan['loan_status'] = loan['loan_status'].replace({'Fully Paid':'Paid'})
+#loan['loan_status'] = loan['loan_status'].replace({'Charged Off':'Default'})
+print(loan['loan_status'].value_counts()/len(loan))
+univariate(df=loan,col='loan_status',vartype=1)
+loan.tail()
+liststr="installment	funded_amnt	funded_amnt_inv	verification_status	issue_d	sub_grade	emp_title	pymnt_plan	title	addr_state	earliest_cr_line	initial_list_status	out_prncp	out_prncp_inv	total_pymnt	total_pymnt_inv	total_rec_prncp	total_rec_int	total_rec_late_fee	recoveries	collection_recovery_fee	last_pymnt_d	last_pymnt_amnt	last_credit_pull_d	collections_12_mths_ex_med	application_type	acc_now_delinq	tot_coll_amt	tot_cur_bal	total_rev_hi_lim	acc_open_past_24mths	avg_cur_bal	bc_open_to_buy	bc_util	chargeoff_within_12_mths	delinq_amnt	mo_sin_old_il_acct	mo_sin_old_rev_tl_op	mo_sin_rcnt_rev_tl_op	mo_sin_rcnt_tl	mths_since_recent_bc	mths_since_recent_inq	num_accts_ever_120_pd	num_actv_bc_tl	num_actv_rev_tl	num_bc_sats	num_bc_tl	num_il_tl	num_op_rev_tl	num_rev_accts	num_rev_tl_bal_gt_0	num_sats	num_tl_120dpd_2m	num_tl_30dpd	num_tl_90g_dpd_24m	num_tl_op_past_12m	pct_tl_nvr_dlq	percent_bc_gt_75	pub_rec_bankruptcies	tax_liens	tot_hi_cred_lim	total_bal_ex_mort	total_bc_limit	total_il_high_credit_limit	hardship_flag	disbursement_method	debt_settlement_flag	issue_month	issue_year	issue_month	issue_year	loan_amnt_range	annual_inc_range	int_rate_range"
+not_required_columns = liststr.split("\t")
+print('Number of rows to be deleted =',len(not_required_columns))
+loan.drop(not_required_columns, axis=1, inplace=True)
+print("Now we are left with",loan.shape ,"rows & columns.")
+print(loan.shape)
+loan.head()
+print("We have following categorical data:")
+print(loan['purpose'].unique())
+print(loan['loan_status'].unique())
+print(loan['home_ownership'].unique())
+loan_correlation = loan.corr()
+loan_correlation
+f, ax = plt.subplots(figsize=(14, 9))
+sns.heatmap(loan_correlation, 
+            xticklabels=loan_correlation.columns.values,
+            yticklabels=loan_correlation.columns.values,annot= True)
+plt.show()
+loan['open_acc_ratio'] = loan['open_acc']/loan['total_acc']
+loan["log_annual_income"] = np.log(loan['annual_inc'])
+#loan.emp_length = loan.emp_length.str.extract('(\d+)').astype(float)
+#loan.emp_length.fillna(loan.emp_length.median(),inplace=True)
+
+loan['delinq_2yrs_cat'] = 'no'
+loan.loc[loan['delinq_2yrs']> 0,'delinq_2yrs_cat'] = 'yes'
+
+loan['inq_last_6mths_cat'] = 'no'
+loan.loc[loan['inq_last_6mths']> 0,'inq_last_6mths_cat'] = 'yes'
+
+loan['pub_rec_cat'] = 'no'
+loan.loc[loan['pub_rec']> 0,'pub_rec_cat'] = 'yes'
+print(loan.delinq_2yrs.unique())
+print(loan.delinq_2yrs_cat.unique())
+print(loan.inq_last_6mths.unique())
+print(loan.inq_last_6mths_cat.unique())
+print(loan.pub_rec.unique())
+print(loan.pub_rec_cat.unique())
+#original = ['annual_inc','open_acc','mort_acc']
+drop_original = ['annual_inc','delinq_2yrs','inq_last_6mths','pub_rec']
+loan.drop(drop_original, axis=1, inplace=True)
+print("Now we are left with",loan.shape ,"rows & columns.")
+# Drop
+drop = ['last_fico_range_high','last_fico_range_low']
+loan.drop(drop, axis=1, inplace=True)
+r,c=loan.shape
+print(f"The number of rows {r}\nThe number of columns {c}")
+loan.dropna(axis=0, how = 'any', inplace = True)
+r1,c1=loan.shape
+print(f"The difference between earlier and dropped Nan rows: {r-r1}")
+# average fico score from range
+#loan["fico_score"] = (loan['fico_range_high'] + loan['fico_range_low'])/2
+loan['fico_score'] = loan[['fico_range_low', 'fico_range_high']].mean(axis=1)
+drop = ['fico_range_low','fico_range_high']
+loan.drop(drop, axis=1, inplace=True)
+loan['fico_score']
+univariate(df=loan,col='fico_score',vartype=0)
+univariate(df=loan,col='fico_score',vartype=1)
+fico,maxx = crosstab(loan,'fico_score')
+display(fico)
+
+print("maximum")
+display(maxx)
+
+bivariate_prob(df=loan,col='fico_score',stacked=True)
+fico.dtypes
+#plt.subplots()
+linePlot = fico['Probability_Charged Off']
+barPlot =  fico.iloc[:,0:2]
+fig, ax1 = plt.subplots()
+ax1 = linePlot.plot(figsize=(20,8), marker='o',color = 'r') #linestyle='-'
+#ax2 = barPlot.plot(kind='bar',rot=1,secondary_y=True,stacked=True)
+ax1.set_title(loan['fico_score'].name.title()+' vs Probability Charge Off',fontsize=20,weight="bold")
+ax1.set_xlabel(loan['fico_score'].name.title(),fontsize=14)
+ax1.set_ylabel('Probability of Charged off',color = 'b',fontsize=14)
+#ax2.set_ylabel('Number of Applicants',color = 'g',fontsize=14)
+plt.show()
+loan['emp_length'] = loan['emp_length'].replace({'1 year':1,'10+ years':'10','2 years':2,'3 years':3,"4 years":4,"5 years":5,
+                                                 "6 years":6,"7 years":7,"8 years":8,"9 years":9,"< 1 year":0})
+
+#a_dataframe.drop(a_dataframe[a_dataframe.B > 3].index, inplace=True)
+
+loan.drop(loan[loan['emp_length']=="Self-Employed"].index,inplace = True)
+loan['emp_length'] = loan['emp_length'].apply(pd.to_numeric)
+
+univariate(df=loan,col='emp_length',vartype=1)
+loan.head()
+loan.dtypes
+loan.to_csv('cleanedData.csv', index=False)

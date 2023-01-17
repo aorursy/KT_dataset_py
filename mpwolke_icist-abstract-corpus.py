@@ -1,0 +1,127 @@
+#codes from Rodrigo Lima  @rodrigolima82
+
+from IPython.display import Image
+
+Image(url = 'data:image/png;base64,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',width=400,height=400)
+# This Python 3 environment comes with many helpful analytics libraries installed
+
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+
+# For example, here's several helpful packages to load
+
+
+
+import numpy as np # linear algebra
+
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import seaborn as sns
+
+import matplotlib.pyplot as plt
+
+%matplotlib inline
+
+import string
+
+import nltk
+
+nltk.download('stopwords')
+
+from nltk.corpus import stopwords
+
+from nltk.probability import FreqDist
+
+from wordcloud import WordCloud, STOPWORDS
+
+
+
+# Input data files are available in the read-only "../input/" directory
+
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+
+
+import os
+
+for dirname, _, filenames in os.walk('/kaggle/input'):
+
+    for filename in filenames:
+
+        print(os.path.join(dirname, filename))
+
+
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+df = pd.read_csv('../input/icist-abstracts-corpus/abstracts_icist.csv', encoding='ISO-8859-2')
+
+df.head()
+plt.style.use('fivethirtyeight')
+
+df.plot(subplots=True, figsize=(10, 10), sharex=False, sharey=False)
+
+plt.show()
+import plotly.express as px
+
+px.histogram(df, x='355', color='2011')
+fig = px.bar(df,
+
+             y='355',
+
+             x='2011',
+
+             orientation='h',
+
+             color='Comparation possibilities of k-means and hac clustering in analysis of usersâ patterns of behavior',
+
+             title='ICIST Corpus',
+
+             opacity=0.8,
+
+             color_discrete_sequence=px.colors.diverging.Armyrose,
+
+             template='plotly_dark'
+
+            )
+
+fig.update_xaxes(range=[0,35])
+
+fig.show()
+fig = px.bar(df, x= "2011", y= "355", color_discrete_sequence=['crimson'],)
+
+fig.show()
+# Scatter Matrix Plot
+
+fig = px.scatter_matrix(df)
+
+fig.show()
+df = df.rename(columns={'Comparation possibilities of k-means and hac clustering in analysis of usersâ patterns of behavior':'comparation'})
+#word cloud
+
+from wordcloud import WordCloud, ImageColorGenerator
+
+text = " ".join(str(each) for each in df.comparation)
+
+# Create and generate a word cloud image:
+
+wordcloud = WordCloud(max_words=200,colormap='Set2', background_color="black").generate(text)
+
+plt.figure(figsize=(10,6))
+
+plt.figure(figsize=(15,10))
+
+# Display the generated image:
+
+plt.imshow(wordcloud, interpolation='Bilinear')
+
+plt.axis("off")
+
+plt.figure(1,figsize=(12, 12))
+
+plt.show()
+#codes from Rodrigo Lima  @rodrigolima82
+
+from IPython.display import Image
+
+Image(url = 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQ1x0DvcBqjUdZeZ8gQ8f3ExK2Y9-l_pivCE6cdwftj2C2cO3Pn&usqp=CAU',width=400,height=400)
